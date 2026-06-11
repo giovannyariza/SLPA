@@ -907,3 +907,76 @@ Private Function GetLinearExpansionCoefficient(ByVal Mtrl As eMtrl, ByVal TmpUni
       GetLinearExpansionCoefficient = 0
   End Select
 End Function
+
+''' <summary>
+''' Calcula el Factor de Corrección por Carga Hidrostática (CBhp).
+''' Compensa la expansión elástica de la coraza del tanque por el peso del líquido.
+''' Basado en API MPMS 12.1.1, Sección 5.3.
+''' Solo aplica CBhp si la tabla fue generada por métodos geométricos (medición con cinta, láser o triangulación), 
+''' que es lo más común en tanques verticales (Upright Cylindrical Tanks).
+''' </summary>
+''' <param name="Height">Nivel del líquido observado (ft o m).</param>
+''' <param name="DensObs">Densidad relativa del líquido a temp. de operación (SGU).</param>
+''' <param name="Diameter">Diámetro nominal del tanque (ft o m).</param>
+''' <param name="AvgThickness">Espesor promedio de la coraza (in o mm).</param>
+''' <param name="IsMetric">True para unidades Métricas (m, mm), False para Imperiales (ft, in).</param>
+''' <returns>Factor CBhp (Double). Retorna 1.0 si hay error.</returns>
+
+Public Function CBHP(ByVal Height As Double, ByVal DensObs As Double, ByVal Diameter As Double, ByVal AvgThickness As Double, Optional ByVal IsMetric As Boolean = False) As Double
+  On Error GoTo ErrHandler
+  
+  ' Validaciones de Integridad
+  If Not mdHelpers.IsFinite(Height) Or Not mdHelpers.IsFinite(DensObs) Or Not mdHelpers.IsFinite(Diameter) Or Not mdHelpers.IsFinite(AvgThickness) Then GoTo ErrHandler
+  
+  If AvgThickness <= 0 Or Diameter <= 0 Then GoTo ErrHandler
+
+  ' Definición de Constantes Físicas (Acero al Carbono API 650)
+  ' Módulo de Elasticidad (Young's Modulus)
+  ' Imperial: 30,000,000 psi | Métrico: 206,842,700,000 Pa (207 GPa)
+  Dim E As Double
+  Dim GravityConstant As Double
+  
+  If Not IsMetric Then
+    E = 30000000 ' psi
+    GravityConstant = 0.4335 ' psi/ft (presión del agua por pie de altura)
+  Else
+    E = 206842718900 ' Pa
+    GravityConstant = 9806.65 ' Pa/m (presión del agua por metro de altura)
+  End If
+
+  ' Cálculo de la Presión Hidrostática Promedio (P)
+  ' P = Densidad_Relativa * Constante_Gravedad * Altura_Liquido
+  ' Nota: La presión se evalúa usualmente a la mitad de la columna de líquido 
+  ' para obtener una deformación promedio en la coraza.
+  Dim Pressure As Double
+  Pressure = DensObs * GravityConstant * (Height / 2)
+  
+  ' Cálculo de la deformación radial (Hoop Stress principle)
+  ' La fórmula simplificada de expansión de volumen para un cilindro delgado:
+  ' Delta_V / V = (P * D) / (2 * E * t) 
+  ' CBhp = 1 + (Delta_V / V)  
+  Dim dValue As Double
+  dValue = Diameter
+  
+  Dim tValue As Double
+  tValue = AvgThickness
+  
+  ' Ajuste de unidades de espesor si es necesario
+  ' Si es Imperial, convertimos Diámetro a pulgadas para que coincida con E (psi) y espesor (in)
+  If Not IsMetric Then
+    dValue = Diameter * 12
+  End If
+  
+  Dim expansionFactor As Double
+  expansionFactor = (Pressure * dValue) / (2 * E * tValue)
+  
+  CBHP = 1 + expansionFactor
+  
+  ' Validación final
+  If Not mdHelpers.IsFinite(CBHP) Or CBHP < 1 Then CBHP = 1
+  Exit Function
+
+ErrHandler:
+  Debug.Print "Error en CBHP: " & Err.Description
+  CBHP = 1
+End Function
