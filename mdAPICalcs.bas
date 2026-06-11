@@ -1,29 +1,43 @@
-Attribute VB_Name = "mdAPIFluidCalcs"
+Attribute VB_Name = "mdAPICalcs"
 Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
-' MÓDULO: mdAPIFluidCalcs
+' MÓDULO: mdAPICalcs
 ' DESCRIPCIÓN:
-'   Este módulo contiene funciones para calcular varios factores y propiedades de hidrocarburos líquidos
-'   basados en las normas API MPMS, principalmente el Capítulo 11.1 (Factores de Corrección de Volumen por
-'   Temperatura y Presión) y el Capítulo 9.3 (Determinación de Densidad por Hidrómetro).
-'   Las funciones aquí contenidas dependen principalmente de las PROPIEDADES DEL FLUIDO y las condiciones
-'   de operación (temperatura, presión), no de las características del equipo de medición (tanque, medidor).
+'   Este módulo contiene funciones para calcular cantidades de hidrocarburos líquidos, basado en las normas 
+'   API MPMS. Implementa los estándares internacionales para la transferencia de custodia, permitiendo la 
+'   normalización de volúmenes observados a condiciones estándar (60°F / 14.696 psi).
 '
 ' DEPENDENCIAS:
-'   - mdGlobals.bas: Para definiciones de enumeraciones (Enums) y constantes API MPMS.
-'   - mdConversion.bas: Para funciones de conversión de unidades (CONVTEMP, CONVDENS, CONVTEMP68).
+'   - mdGlobals: Para definiciones de enumeraciones (Enums) y constantes API MPMS.
+'   - mdConversion: Para funciones de conversión de unidades (CONVTEMP, CONVDENS, CONVTEMP68).
+'   - mdHelpers: Validaciones de integridad matemática y finitud (Failsafe).
 '
-' FUNCIONES FUNDAMENTALES (API MPMS Cap. 9 y 11):
-'   - HYC: Factor de Corrección por Temperatura del Hidrómetro (API MPMS 9.3).
-'   - DENSHYC: Densidad/API corregida por Temperatura del Hidrómetro (API MPMS 9.3).
-'   - ALPHA60: Coeficiente de Expansión Térmica a 60F (API MPMS 11.1 Apéndice E/F).
-'   - FP: Factor de Compresibilidad Escalado (API MPMS 11.1).
-'   - CTL: Factor de Corrección por Temperatura del Líquido (API MPMS 11.1).
-'   - CPL: Factor de Corrección por Presión del Líquido (API MPMS 11.1).
-'   - API60F: Calcula API a 60F y Presión de Equilibrio (Iterativo API MPMS 11.1 Apéndice E).
-'   - APIOBS: Calcula API Observada (a presión base) a partir de API60 (Derivado de API MPMS 11.1).
-'   - ROUNDAPI: Redondeo de valores según reglas específicas API MPMS 11.1.
+' FUNCIONES FUNDAMENTALES:
+' ---------------------------------------------------------------------------------------------------------
+' CORRECCIÓN INSTRUMENTAL (API MPMS Cap. 9.3)
+'   - HYC: Factor de Corrección de la Escala del Hidrometro por Temperatura.
+'   - DENSHYC: Densidad/API corregida por Temperatura del Hidrómetro.
+' ---------------------------------------------------------------------------------------------------------
+' DINÁMICA DEL FLUIDO (API MPMS Cap. 11.1)
+'   - ALPHA60MED: Coeficiente de Expansión Térmica Promedio (Alfa 60 Medio) a partir de una serie de mediciones de densidad y temperatura.
+'   - ALPHA60: Coeficiente de Expansión Térmica a 60°F (Alfa60) y la Densidad en escala IPTS-68. (Apéndice E/F).
+'   - FP: Factor de Compresibilidad Escalado.
+'   - CTL: Factor de Corrección por Temperatura del Líquido.
+'   - CPL: Factor de Corrección por Presión del Líquido.
+'   - API60F: Calcula API a 60F y Presión de Equilibrio (Iterativo Newton-Raphson, Apéndice E).
+'   - APIOBS: Calcula API Observada (a presión base) a partir de API60.
+'   - ROUNDAPI: Redondeo de valores según reglas específicas (Banker's Rounding)
+' ---------------------------------------------------------------------------------------------------------
+' AJUSTES EN TANQUES (API MPMS Cap. 12.1.1): Correcciones geométricas y físicas de la infraestructura de almacenamiento.
+'   - TSH: Cálculo de la temperatura ponderada de la coraza del tanque.
+'   - CTSH: Factor de corrección por expansión térmica del acero en el cuerpo del tanque.
+'   - FRA: Ajuste volumétrico por desplazamiento estático (Principio de Arquímedes) del techo flotante.
+' ---------------------------------------------------------------------------------------------------------
+
+' ---------------------------------------------------------------------------------------------------------
+' FUNCIONES DE CORRECCIÓN INSTRUMENTAL (API MPMS Cap. 9.3)
+' Ajustes por la expansión térmica del vidrio en hidrómetros.
 ' ---------------------------------------------------------------------------------------------------------
 
 ''' <summary>
@@ -126,6 +140,110 @@ Public Function DENSHYC(ByVal DensObs As Double, ByVal TmpObs As Double, Optiona
 ErrHandler:
   Debug.Print "Error en DENSHYC: " & Err.Description
   DENSHYC = 0 ' Retorno de seguridad sin correccion
+End Function
+
+' ---------------------------------------------------------------------------------------------------------
+' FUNCIONES ASOCIADAS A LA DINÁMICA DEL FLUIDO (API MPMS Cap. 11.1)
+' Cálculo de factores de corrección volumétrica basados en la ecuación de estado API.
+' ---------------------------------------------------------------------------------------------------------
+
+''' <summary>
+''' Calcula el Coeficiente de Expansión Térmica Promedio (Alfa 60 Medio) a partir de una serie de mediciones de densidad y temperatura.
+''' Basado en API MPMS 11.1 (2007) - Aplicaciones Especiales.
+''' </summary>
+''' <param name="DensRange">Rango o Arreglo con lecturas de densidad observada.</param>
+''' <param name="TempRange">Rango o Arreglo con lecturas de temperatura observada.</param>
+''' <param name="TypeLiq">Tipo de fluido (CRD, REF, LUB).</param>
+''' <returns>Promedio de Alfa 60 (Double). Retorna 0 si hay error o datos insuficientes.</returns>
+
+Public Function ALPHA60MED(ByVal DensRange As Variant, ByVal TempRange As Variant, Optional ByVal TypeLiq As eTypeLiq = CRD) As Variant
+  On Error GoTo ErrHandler ' Manejador de errores
+  
+  ' Convertir entradas a arreglos de Double (Handles Ranges and Arrays)
+  Dim ArrDens() As Double
+  ArrDens = ConvertToDoubleArray(DensRange)
+
+  Dim ArrTmps() As Double
+  ArrTmps = ConvertToDoubleArray(TempRange)
+  
+  ' Validar que ambos arreglos tengan la misma dimensión y mínimo 10 datos
+  Dim n As Long
+  n = UBound(ArrDens)
+
+  If n <> UBound(ArrTmps) Or n < 10 Then
+    ALPHA60MED = CVErr(xlErrNum) ' Retorna #NUM! en Excel si los datos son insuficientes
+    Exit Function
+  End If
+
+  ' 3. Procesamiento Matricial
+  Dim i As Long
+  Dim SumAlpha As Double
+  Dim API60_Iter As Double
+  Dim Alfa60_Iter As Double
+  
+  Dim ValidCounts As Long
+  ValidCounts = 0
+  
+  For i = 1 To n
+    ' Solo procesar si ambos datos son finitos (mdHelpers)
+    If mdHelpers.IsFinite(ArrDens(i)) And mdHelpers.IsFinite(ArrTmps(i)) Then      
+      ' a. Hallar API 60 base para este punto (Newton-Raphson)
+      API60_Iter = API60F(ArrDens(i), ArrTmps(i), TypeLiq, 0, 0)
+      
+      If API60_Iter > 0 Then
+        ' b. Hallar Alfa 60 para este API 60
+        Alfa60_Iter = ALPHA60(API60_Iter, TypeLiq)
+        
+        If Alfa60_Iter > 0 Then
+          SumAlpha = SumAlpha + Alfa60_Iter
+          ValidCounts = ValidCounts + 1
+        End If
+      End If
+    End If
+  Next i
+  
+  ' 4. Calcular Promedio
+  If ValidCounts >= 10 Then
+    ALPHA60MED = SumAlpha / ValidCounts
+  Else
+    ALPHA60MED = 0
+  End If
+  Exit Function
+
+ErrHandler:
+  Debug.Print "Error en ALPHA60MED: " & Err.Description
+  ALPHA60MED = 0
+End Function
+
+''' <summary>
+''' Convierte un Variant (Rango de Excel o Array) en un arreglo unidimensional de Doubles base 1.
+''' </summary>
+Private Function ConvertToDoubleArray(ByVal InputVar As Variant) As Double()
+  Dim res() As Double
+  Dim cell As Variant
+  Dim count As Long: count = 0
+  
+  ' Determinar tamaño
+  If TypeName(InputVar) = "Range" Or IsArray(InputVar) Then
+    ' Redimensionar temporalmente
+    ReDim res(1 To 10000) ' Límite arbitrario para baches de fiscalización
+    
+    For Each cell In InputVar
+      If IsNumeric(cell) And Not IsEmpty(cell) Then
+        count = count + 1
+        res(count) = CDbl(cell)
+      End If
+    Next cell
+    
+    ' Ajustar al tamaño real
+    If count > 0 Then
+      ReDim Preserve res(1 To count)
+    Else
+      ReDim res(0 To 0)
+    End If
+  End If
+  
+  ConvertToDoubleArray = res
 End Function
 
 ''' <summary>
@@ -660,5 +778,132 @@ Public Function ROUNDAPI(ByVal Val As Double, ByVal PosDec As Long, Optional ByV
 
 ErrHandler:
   Debug.Print "Error en ROUNDAPI: " & Err.Description
-  ROUNDAPI = Val
+  ROUNDAPI = Val ' Retorno de seguridad sin correccion
+End Function
+
+' ---------------------------------------------------------------------------------------------------------
+' FUNCIONES PARA AJUSTES EN TANQUES (API MPMS Cap. 12.1.1)
+' Correcciones geométricas y físicas de la infraestructura de almacenamiento.
+' ---------------------------------------------------------------------------------------------------------
+
+''' <summary>
+''' Calcula la temperatura de la pared (coraza) del tanque.
+''' API MPMS 12.1.1, Sección 5.1.
+''' </summary>
+''' <param name="TempLiq">Temperatura del producto.</param>
+''' <param name="TempAmb">Temperatura ambiente.</param>
+''' <returns>Temperatura de la coraza del tanque.</returns>
+
+Public Function TSH(ByVal TmpLiq As Double, ByVal TmpAmb As Double) As Double
+  On Error GoTo ErrHandler ' Manejador de errores
+  
+  ' Validación de Finitud
+  If Not mdHelpers.IsFinite(TmpLiq) Or Not mdHelpers.IsFinite(TmpAmb) Then GoTo ErrHandler
+  
+  ' Fórmula: ((7 * T_liq) + T_amb) / 8
+  TSH = (7 * TmpLiq + TmpAmb) / 8
+
+  ' Validación de Finitud
+  If Not mdHelpers.IsFinite(TSH) Then GoTo ErrHandler
+  Exit Function
+
+ErrHandler:
+  Debug.Print "Error en TSH: " & Err.Description
+  TSH = TmpLiq ' Retorno de seguridad sin correccion
+End Function
+
+''' <summary>
+''' Calcula el Factor de Corrección por Temperatura de la Coraza (CTSH).
+''' </summary>
+''' <param name="TmpLiq">Temperatura del producto.</param>
+''' <param name="TmpAmb">Temperatura ambiente.</param>
+''' <param name="Mtrl">Tipo de material (eMtrl).</param>
+''' <param name="TmpUnits">Unidad térmica (F o C).</param>
+''' <param name="TmpBase">Temperatura de referencia (Defecto 60°F o 15°C).</param>
+''' <returns>Factor de Corrección por Temperatura de la Coraza.</returns>
+
+Public Function CTSH(ByVal TmpLiq As Double, ByVal TmpAmb As Double, Optional ByVal Mtrl As eMtrl = MCrbn, Optional ByVal TmpUnits As eTmpUnits = F, Optional ByVal TmpBase As Double = 60) As Double
+  On Error GoTo ErrHandler ' Manejador de Errores
+  
+  ' Validaciones de Finitud
+  If Not mdHelpers.IsFinite(TmpLiq) Or Not mdHelpers.IsFinite(TmpAmb) Then GoTo ErrHandler
+  
+  Dim Tcfl As Double
+  ' Obtener Coeficiente de Expansión Lineal (Tcfl)
+  Tcfl = GetLinearExpansionCoefficient(Mtrl, TmpUnits)
+  
+  If Tcfl = 0 Then GoTo ErrHandler
+
+  Dim Tshl As Double
+  ' 3. Calcular Temperatura de Coraza
+  Tshl = TSH(TmpLiq, TmpAmb)
+
+  Dim DeltaTmp As Double
+  ' Calcular DeltaTmp    
+  DeltaTmp = Tshl - TmpBase
+  
+  ' 4. Cálculo del CTSH (Expansión de área del cilindro)
+  ' La norma utiliza el binomio al cuadrado: (1 + Tcfl * DeltaTmp)^2
+  ' lo que expandido es: 1 + 2 * Tcfl * dT + Tcfl^2 * dT^2
+  CTSH = (1 + (Tcfl * DeltaTmp)) ^ 2
+  
+  ' Validación de seguridad
+  If Not mdHelpers.IsFinite(CTSH) Then CTSH = 1
+  Exit Function
+
+ErrHandler:
+  CTSH = 1 ' Factor neutro en caso de error
+End Function
+
+''' <summary>
+''' Calcula el Ajuste por Techo Flotante (FRA) en volumen.
+''' El resultado debe RESTARSE del volumen observado.
+''' </summary>
+''' <param name="RoofWeight">Peso del techo (lb o kg).</param>
+''' <param name="Dens60">Densidad a temperatura base (SGU o Kg/m3).</param>
+''' <param name="CTL">Factor de corrección por temperatura del líquido.</param>
+
+Public Function FRA(ByVal RoofWeight As Double, ByVal Dens60 As Double, ByVal CTL As Double) As Double
+    On Error GoTo ErrHandler ' Manejador de Errores
+    
+  ' Validación de Finitud
+  If Not mdHelpers.IsFinite(RoofWeight) Or Not mdHelpers.IsFinite(Dens60) Or Not mdHelpers.IsFinite(CTL) Then GoTo ErrHandler
+  
+  Dim DensObs As Double
+  ' Densidad en condiciones observadas = Densidad_Std * CTL    
+  DensObs = Dens60 * CTL
+  
+  If DensObs > 0.001 Then
+    ' FRA = Peso / Densidad_Observada
+    FRA = RoofWeight / DensObs
+  Else
+      FRA = 0
+  End If
+
+  ' Validación de Finitud
+  If Not mdHelpers.IsFinite(FRA) GoTo ErrHandler
+  Exit Function
+
+ErrHandler:
+  Debug.Print "Error en FRA (Peso: " & RoofWeight & "): " & Err.Description
+  FRA = 0
+End Function
+
+''' <summary>
+''' Retorna el coeficiente de expansión lineal (alpha) según API 12.1.1.
+''' </summary>
+
+Private Function GetLinearExpansionCoefficient(ByVal Mtrl As eMtrl, ByVal TmpUnits As eTmpUnits) As Double
+  Select Case Mtrl
+    Case MCrbn ' Acero al Carbono
+      GetLinearExpansionCoefficient = IIf(TmpUnits = F, 0.0000062, 0.0000112)
+    Case St304 ' Acero Inoxidable 304
+      GetLinearExpansionCoefficient = IIf(TmpUnits = F, 0.0000096, 0.0000173)
+    Case St316 ' Acero Inoxidable 316
+      GetLinearExpansionCoefficient = IIf(TmpUnits = F, 0.00000883, 0.0000159)
+    Case St4PH ' Acero Inoxidable 17-4 PH
+      GetLinearExpansionCoefficient = IIf(TmpUnits = F, 0.000006, 0.0000108)
+    Case Else
+      GetLinearExpansionCoefficient = 0
+  End Select
 End Function
