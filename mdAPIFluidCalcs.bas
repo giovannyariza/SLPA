@@ -140,38 +140,26 @@ End Function
 Public Function ALPHA60(ByVal API60 As Double, Optional TypeLiq As eTypeLiq = CRD, Optional ByRef Rho68 As Double) As Double
   On Error GoTo ErrHandler ' Manejo de errores
 
-  ' Validar finitud del parámetro de entrada inicial
+  ' Validación de Finitud (mdHelpers)
   If Not mdHelpers.IsFinite(API60) Then GoTo ErrHandler
+
+  ' Validación de Integridad
   If API60 <= -131.5 Then GoTo ErrHandler
 
-  Dim Rho60 As Double ' Densidad a 60F (ITS-90) en Kg/m³ relativo al agua
-  Dim K0 As Double, K1 As Double, K2 As Double ' Constantes de las tablas API
-  
-  ' Convertir la Gravedad API60 (ITS-90)
+  Dim Rho60 As Double
+  ' Convertir la Gravedad API60 (ITS-90) en Kg/m³ relativo al agua
   Rho60 = mdConversion.CONVDENS(API60, A2K, True)
+
+  ' Validación de Integridad
+  If Rho60 <= 0 Then GoTo ErrHandler
   
+  ' Constantes de las tablas API
+  Dim K0 As Double, K1 As Double, K2 As Double  
   ' Selección de Constantes K (API MPMS 11.1 Tablas 6A, 6B, 6D)
-  Select Case TypeLiq
-    Case CRD ' Tabla 6A: Crudos
-      K0 = 341.0957: K1 = 0: K2 = 0
-        
-    Case LUB ' Tabla 6D: Lubricantes
-      K0 = 0: K1 = 0.34878: K2 = 0
-        
-    Case REF ' Tabla 6B: Productos Refinados (Selección por rangos de densidad)
-      If Rho60 >= 838.3127 Then       ' Fuel Oils
-        K0 = 103.872: K1 = 0.2701: K2 = 0
-      ElseIf Rho60 >= 787.5195 Then   ' Jet Fuels
-        K0 = 330.301: K1 = 0: K2 = 0
-      ElseIf Rho60 >= 770.352 Then    ' Transition Zone
-        K0 = 1489.067: K1 = 0: K2 = -0.0018684
-      ElseIf Rho60 >= 610.6 Then      ' Gasolines
-        K0 = 192.4571: K1 = 0.2438: K2 = 0
-      Else
-        ' Fuera de rango para Refinados según estándar
-        GoTo ErrHandler
-      End If
-  End Select
+  Call GetKConstants(TypeLiq, Rho60, K0, K1, K2)
+
+  ' Verificación de seguridad: si no se encontró un rango válido, abortar
+  If K0 = 0 And K1 = 0 And K2 = 0 And TypeLiq <> LUB Then GoTo ErrHandler
 
   ' Calcular Alfa60 (en 1/°F) usando las constantes K y Rho60. Fórmula de API MPMS 11.1 (2007) Apéndice E
   ' Alfa60 = K0/Rho60^2 + K1/Rho60 + K2
@@ -179,6 +167,9 @@ Public Function ALPHA60(ByVal API60 As Double, Optional TypeLiq As eTypeLiq = CR
   
   ' Calcular Rho68 (densidad a 60F IPTS-68 en Kg/m³) a partir de Rho60 (ITS-90). API MPMS 11.1 (2007) Apéndice F.  
   Rho68 = Rho60 * Exp(ALPHA60 * cTmpShift)
+
+  ' Validación de Finitud
+  If Not mdHelpers.IsFinite(ALPHA60) Then ALPHA60 = 0
   Exit Function
 
 ErrHandler:
@@ -186,6 +177,41 @@ ErrHandler:
   ALPHA60 = 0 ' Retorno de seguridad sin correccion
   Rho68 = 0
 End Function
+
+''' <summary>
+''' Provee las constantes K0, K1 y K2 según el tipo de líquido y su densidad.
+''' Basado en API MPMS 11.1 (Tablas 6A, 6B y 6D).
+''' </summary>
+''' <param name="TypeLiq">Tipo de líquido (CRD, REF, LUB).</param>
+''' <param name="Rho60">Densidad a 60F (ITS-90) en Kg/m³ relativo al agua</param>
+''' <returns>Constantes para el cálculo del factor Alfa a 60°F por tipo de producto.</returns>
+Private Sub GetKConstants(ByVal TypeLiq As eTypeLiq, ByVal Rho60 As Double, ByRef K0 As Double, ByRef K1 As Double, ByRef K2 As Double)  
+  ' Inicializamos en cero por seguridad
+  K0 = 0: K1 = 0: K2 = 0
+
+  Select Case TypeLiq
+    Case CRD ' Tabla 6A: Petróleo Crudo
+      K0 = 341.0957: K1 = 0: K2 = 0
+        
+    Case LUB ' Tabla 6D: Aceites Lubricantes
+      K0 = 0: K1 = 0.34878: K2 = 0
+        
+    Case REF ' Tabla 6B: Productos Refinados
+      ' Selección por rangos de densidad ITS-90
+      If Rho60 >= 838.3127 Then      ' Fuel Oils
+          K0 = 103.872: K1 = 0.2701: K2 = 0
+      ElseIf Rho60 >= 787.5195 Then   ' Jet Fuels
+          K0 = 330.301: K1 = 0: K2 = 0
+      ElseIf Rho60 >= 770.352 Then    ' Transition Zone
+          K0 = 1489.067: K1 = 0: K2 = -0.0018684
+      ElseIf Rho60 >= 610.6 Then      ' Gasolines
+          K0 = 192.4571: K1 = 0.2438: K2 = 0
+      End If
+
+    Case Else
+      ' Tipo de líquido no soportado
+  End Select
+End Sub
 
 ''' <summary>
 ''' Calcula el Coeficiente de Compresibilidad Escalado (Fp).
@@ -392,7 +418,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
   TempObs_F68 = mdConversion.CONVTEMP68(TempObs, F)
   
   Dim TempObs_C68 As Double
-  TempObs_C68 = mdConversion.CONVTEMP68(TempObs, C)
+  TempObs_C68 = mdConversion.CONVTEMP(TempObs_F68, F2C)
   
   ' Calcular Delta_t en Fahrenheit IPTS-68
   Dim DeltaT_F68 As Double
@@ -407,8 +433,8 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
   Rho60 = RhoObs
   
   ' Iniciar el proceso iterativo (Método de Newton)
-  Const maxIterations As Long = 20 ' Número máximo de iteraciones
-  Const tolerance As Double = 0.00001 ' Tolerancia para la diferencia de densidad (Kg/m³)
+  Const MaxIterations As Long = 25 ' Número máximo de iteraciones
+  Const Tolerance As Double = 0.00001 ' Tolerancia para la diferencia de densidad (Kg/m³)
   Dim m As Byte ' Contador de iteraciones
   Dim API60_Iter As Double  ' API60 (ITS-90) correspondiente a Rho60_Iter
   Dim Alfa60_Iter As Double ' Alfa60 (1/°F) para API60_Iter
@@ -425,7 +451,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
   Dim Dp_Denom As Double  
   Dim DRho60 as Double      ' Corrección (DRho60) usando la derivada (Método de Newton)
 
-  For m = 1 To maxIterations
+  For m = 1 To MaxIterations
     ' Convertir el Rho60_Iter (supuesto, ITS-90) a API60_Iter (ITS-90)
     API60_Iter = mdConversion.CONVDENS(Rho60, K2A, True)
 
@@ -445,7 +471,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
     Em = (RhoObs / CTPL_Iter) - Rho60
 
     ' Criterio de parada
-    If Abs(Em) < tolerance Then
+    If Abs(Em) < Tolerance Then
       API60F = API60_Iter
       Exit Function
     End If
@@ -462,11 +488,15 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
     FP_Iter = FP(API60_Iter, TempObs, TypeLiq)
 
     ' Calcular el término Dp (API MPMS 11.1 2007 Apéndice E E.5)
-    ' Dp = -(2 * CPL_m * P_obs * F_cp_m * (7.9392 + 0.02326 * t_obs_F68)) / (rho_m^2 * Alpha_60_m)
-    ' P_obs es PresObs (en PSI), t_obs_F68 es TempObs_F68, rho_m es Rho60, Alpha_60_m es Alfa60_Iter
-    Dp_Num = -(2 * CPL_Iter * PresObs * FP_Iter * (7.9392 + 0.02326 * TempObs_F68))
+    ' Dp = -(2 * CPL_m * P_obs * F_cp_m * (7.9392 + 0.02326 * TempObs_C68)) / (rho_m^2 * Alpha_60_m)
+    Dp_Num = -(2 * CPL_Iter * (PresObs - Pe) * (FP_Iter * Tolerance) * (7.9392 + 0.02326 * TempObs_C68))
     Dp_Denom = (Rho60 ^ 2 * Alfa60_Iter)
-    Dp = Dp_Num / Dp_Denom
+
+    If Abs(Dp_Denom) > 0.0000000001 Then
+      Dp = Dp_Num / Dp_Denom
+    Else
+      Dp = 0
+    End If
 
     ' Calcular el siguiente paso de corrección (DRho60)
     DRho60 = Em / (1 + Dt + Dp)
@@ -479,7 +509,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
   Next m ' Siguiente iteración
 
   ' Si llega aquí, no hubo convergencia
-  Debug.Print "API60F: No se alcanzó convergencia en " & maxIterations & " iteraciones."
+  Debug.Print "API60F: No se alcanzó convergencia en " & MaxIterations & " iteraciones."
   API60F = 0
   Exit Function
 
