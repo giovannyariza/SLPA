@@ -9,8 +9,6 @@ Option Explicit
 '   Temperatura y Presión) y el Capítulo 9.3 (Determinación de Densidad por Hidrómetro).
 '   Las funciones aquí contenidas dependen principalmente de las PROPIEDADES DEL FLUIDO y las condiciones
 '   de operación (temperatura, presión), no de las características del equipo de medición (tanque, medidor).
-'   Incluye tanto las funciones fundamentales de cálculo API como funciones de conveniencia para calcular
-'   propiedades base a partir de datos observados.
 '
 ' DEPENDENCIAS:
 '   - mdGlobals.bas: Para definiciones de enumeraciones (Enums) y constantes API MPMS.
@@ -26,12 +24,6 @@ Option Explicit
 '   - API60F: Calcula API a 60F y Presión de Equilibrio (Iterativo API MPMS 11.1 Apéndice E).
 '   - APIOBS: Calcula API Observada (a presión base) a partir de API60 (Derivado de API MPMS 11.1).
 '   - ROUNDAPI: Redondeo de valores según reglas específicas API MPMS 11.1.
-'
-' FUNCIONES DE CONVENIENCIA (Cálculos a partir de datos observados):
-'   - GetAPI60FromObserved: Calcula API a 60F y Pe a partir de datos observados.
-'   - GetCTLFromObserved: Calcula CTL a partir de datos observados.
-'   - GetCPLFromObserved: Calcula CPL a partir de datos observados.
-'   - GetCTPLFromObserved: Calcula CTPL a partir de datos observados.
 ' ---------------------------------------------------------------------------------------------------------
 
 ''' <summary>
