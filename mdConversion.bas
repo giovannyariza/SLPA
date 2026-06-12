@@ -267,13 +267,13 @@ Function CONVDENS68(ByVal API60 As Double, Optional TypeLiq As eTypeLiq = CRD, O
     If K0 = 0 And K1 = 0 And K2 = 0 Then GoTo ErrHandler
 
     ' Ejecucion de ecuaciones polinomiales de ajuste de escala
-    A = (cTmpShift / 2) * (((K0 / Rho60) + K1) * (1 / Rho60) + K2)    
+    A = (cTEMPSHIFT / 2) * (((K0 / Rho60) + K1) * (1 / Rho60) + K2)    
     B = ((2 * K0) + (K1 * Rho60)) / (K0 + (K1 + (K2 * Rho60) * Rho60))
     
     CONVDENS68 = Rho60 * (1 + ((Exp(A * (1 + 0.8 * A)) - 1) / (1 + A * (1 + 1.6 * A) * B)))
   Else
     ' Ajuste simplificado directo si el usuario inyecta de forma explícita el coeficiente Alfa60
-    CONVDENS68 = Rho60 * Exp(0.5 * Alfa60 * cTmpShift * (1 + 0.4 * Alfa60 * cTmpShift))
+    CONVDENS68 = Rho60 * Exp(0.5 * Alfa60 * cTEMPSHIFT * (1 + 0.4 * Alfa60 * cTEMPSHIFT))
   End If
   Exit Function
 

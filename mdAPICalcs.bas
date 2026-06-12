@@ -68,11 +68,11 @@ Public Function HYC(ByVal TmpObs As Double, Optional TmpUnits As eTmpUnits = F) 
   Select Case TmpUnits
     Case F, R:
       tempObsF = mdConversion.CONVTEMP(TmpObs, IIF(TmpUnits = F, F, R2F))
-      deltaT = tempObsF - cBaseTempF
+      deltaT = tempObsF - cTEMPBASE_F
       HYC = 1 - (cHYCF_Coef1 * deltaT) - (cHYCF_Coef2 * (deltaT ^ 2))
     Case C, K:
       tempObsC = mdConversion.CONVTEMP(TmpObs, IIF(TmpUnits = C, C, K2C))
-      deltaT = tempObsC - cBaseTempC
+      deltaT = tempObsC - cTEMPBASE_C
       HYC = 1 - (cHYCC_Coef1 * deltaT) - (cHYCC_Coef2 * (deltaT ^ 2))
     Case Else:
       HYC = 1 ' Unidad no reconocida
@@ -284,7 +284,7 @@ Public Function ALPHA60(ByVal API60 As Double, Optional TypeLiq As eTypeLiq = CR
   ALPHA60 = (K0 / (Rho60 ^ 2)) + (K1 / Rho60) + K2
   
   ' Calcular Rho68 (densidad a 60F IPTS-68 en Kg/m³) a partir de Rho60 (ITS-90). API MPMS 11.1 (2007) Apéndice F.  
-  Rho68 = Rho60 * Exp(ALPHA60 * cTmpShift)
+  Rho68 = Rho60 * Exp(ALPHA60 * cTEMPSHIFT)
 
   ' Validación de Finitud
   If Not mdHelpers.IsFinite(ALPHA60) Then ALPHA60 = 0
@@ -309,20 +309,20 @@ Private Sub GetKConstants(ByVal TypeLiq As eTypeLiq, ByVal Rho60 As Double, ByRe
 
   Select Case TypeLiq
     Case CRD ' Tabla 6A: Petróleo Crudo
-      K0 = 341.0957: K1 = 0: K2 = 0
+      K0 = cK0_CRUDE: K1 = 0: K2 = 0
         
     Case LUB ' Tabla 6D: Aceites Lubricantes
-      K0 = 0: K1 = 0.34878: K2 = 0
+      K0 = 0: K1 = cK1_LUBRICANT: K2 = 0
         
     Case REF ' Tabla 6B: Productos Refinados
       ' Selección por rangos de densidad ITS-90
-      If Rho60 >= 838.3127 Then      ' Fuel Oils
+      If Rho60 >= cRHO_FUEL_OIL Then      ' Fuel Oils
           K0 = 103.872: K1 = 0.2701: K2 = 0
-      ElseIf Rho60 >= 787.5195 Then   ' Jet Fuels
+      ElseIf Rho60 >= cRHO_JET_FUEL Then   ' Jet Fuels
           K0 = 330.301: K1 = 0: K2 = 0
-      ElseIf Rho60 >= 770.352 Then    ' Transition Zone
+      ElseIf Rho60 >= cRHO_TRANSITION Then    ' Transition Zone
           K0 = 1489.067: K1 = 0: K2 = -0.0018684
-      ElseIf Rho60 >= 610.6 Then      ' Gasolines
+      ElseIf Rho60 >= cRHO_GASOLINE Then      ' Gasolines
           K0 = 192.4571: K1 = 0.2438: K2 = 0
       End If
 
@@ -349,12 +349,6 @@ Public Function FP(ByVal API60 As Double, ByVal TempF As Double, Optional TypeLi
   ' Validaciones de Rangos Físicos (Límites estándar API 11.1)
   If API60 <= -131.5 Then GoTo ErrHandler
 
-  ' Coeficientes FP: Estos valores están escalados para trabajar con densidad en Kg/m³
-  Const A As Double = -1.9947
-  Const B As Double = 0.00013427
-  Const C As Long = 793920
-  Const D As Integer = 2326
-
   ' Temperatura observada convertida a IPTS-68 Celsius
   Dim TempC68 As Double
 
@@ -372,8 +366,8 @@ Public Function FP(ByVal API60 As Double, ByVal TempF As Double, Optional TypeLi
   ' Fórmula: exp[A + B*t_c68 + (C + D*t_c68)/rho68^2]
   Dim Term1 As Double, Term2 As Double
   
-  Term1 = A + B * TempC68
-  Term2 = (C + D * TempC68) / (Rho68 ^ 2)
+  Term1 = cFP_A + cFP_B * TempC68
+  Term2 = (cFP_C + cFP_D * TempC68) / (Rho68 ^ 2)
 
   Dim exponente As Double
   
@@ -493,7 +487,7 @@ Public Function CPL(ByVal API60 As Double, ByVal TempF As Double, ByVal Pres As 
   Dim Denominador As Double ' Denominador en la fórmula CPL
   ' Calcular el Factor de Corrección por Presión (CPL)
   ' Fórmula: 1 / (1 - Fcp * (Pres - Pe) * 10 ^ -5)  
-  Denominador = 1 - (Fcp * DeltaP * 0.00001) ' 10^-5 es 0.00001
+  Denominador = 1 - (Fcp * DeltaP * cPRESS_SCALING_API) ' 10^-5 es 0.00001
   
   ' Protección contra indeterminación o resultados físicamente imposibles
   If Abs(Denominador) < 0.1 Then
@@ -649,11 +643,11 @@ Private Function GetDaCoefficient(ByVal TypeLiq As eTypeLiq, ByVal Rho60 As Doub
     Case CRD: GetDaCoefficient = 2   ' Crudos (Tabla 6A)
     Case LUB: GetDaCoefficient = 1   ' Lubricantes (Tabla 6D)
     Case REF ' Productos Refinados (Tabla 6B)
-      If Rho60 >= 838.3127 Then
+      If Rho60 >= cRHO_FUEL_OIL Then
         GetDaCoefficient = 1.3       ' Fuel Oils
-      ElseIf Rho60 >= 787.5195 Then
+      ElseIf Rho60 >= cRHO_JET_FUEL Then
         GetDaCoefficient = 2         ' Jet Fuels
-      ElseIf Rho60 >= 770.352 Then
+      ElseIf Rho60 >= cRHO_TRANSITION Then
         GetDaCoefficient = 8.5       ' Transition
       Else
         GetDaCoefficient = 1.5       ' Gasolines
@@ -937,10 +931,10 @@ Public Function CBHP(ByVal Height As Double, ByVal DensObs As Double, ByVal Diam
   Dim GravityConstant As Double
   
   If Not IsMetric Then
-    E = 30000000 ' psi
+    E = cYOUNG_MODULUS_STEEL_IMP ' psi
     GravityConstant = 0.4335 ' psi/ft (presión del agua por pie de altura)
   Else
-    E = 206842718900 ' Pa
+    E = cYOUNG_MODULUS_STEEL_MET ' Pa
     GravityConstant = 9806.65 ' Pa/m (presión del agua por metro de altura)
   End If
 

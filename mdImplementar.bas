@@ -51,3 +51,8 @@ Attribute VB_Name = "mdImplementar"
 ' ¿Deseas que movamos ahora estas funciones a un Módulo de Clase para empezar a crear objetos "Tanque" y "Fluido" que utilicen estos cálculos de forma automática?
 
 ' ¿Deseas que integremos esta función en un reporte de fiscalización automático o prefieres revisar alguna otra función de la norma API 12.1.1?
+
+' ======================================================================================================
+' PENDIENTES
+' ======================================================================================================
+' Optimizar el módulo de mdGlobals, con todas las constantes a utilizar en los diferentes módulos.
