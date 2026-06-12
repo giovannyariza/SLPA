@@ -6,45 +6,45 @@ Option Explicit
 ''' clsStation, clsComponent, clsTank y el cumplimiento de la interfaz IComponent.
 ''' </summary>
 Public Sub EjecutarPrueba_Infraestructura()
-  ' 1. CONFIGURACIÓN DE OPTIMIZACIÓN Y ENTORNO
-  ' Desactivamos la actualización de pantalla para maximizar la velocidad de procesamiento en entornos corporativos
+  ' 1. CONFIGURACIï¿½N DE OPTIMIZACIï¿½N Y ENTORNO
+  ' Desactivamos la actualizaciï¿½n de pantalla para maximizar la velocidad de procesamiento en entornos corporativos
   Application.ScreenUpdating = False
   
-  ' Captura y manejo estructurado de errores en tiempo de ejecución
+  ' Captura y manejo estructurado de errores en tiempo de ejecuciï¿½n
   On Error GoTo ErrHandler
   
   Debug.Print "======================================================================"
   Debug.Print "INICIANDO PRUEBA DE ARQUITECTURA DE COMPONENTES E INSTALACIONES"
   Debug.Print "======================================================================"
   
-  ' 2. DECLARACIÓN DE VARIABLES
+  ' 2. DECLARACIï¿½N DE VARIABLES
   Dim miEstacion As clsStation
   Dim componenteGenerico As clsComponent
   Dim tanqueEspecializado As clsTank
   Dim itemComponente As IComponent
   
-  ' 3. INSTANCIACIÓN Y CONFIGURACIÓN DE LA ESTACIÓN PRINCIPAL
+  ' 3. INSTANCIACIï¿½N Y CONFIGURACIï¿½N DE LA ESTACIï¿½N PRINCIPAL
   Set miEstacion = New clsStation
   With miEstacion
     .Tag = "EC-01"
-    .Name = "Estación Central de Recibo"
-    .Description = "Planta principal de fiscalización y distribución de fluidos."
+    .Name = "Estaciï¿½n Central de Recibo"
+    .Description = "Planta principal de fiscalizaciï¿½n y distribuciï¿½n de fluidos."
     .Status = "OP"
     .Location = "Bloque Sur - Coordenadas 4.21, -72.3"
   End With
   
-  ' 4. CREACIÓN DE COMPONENTE GENÉRICO (Uso directo de la clase base)
+  ' 4. CREACIï¿½N DE COMPONENTE GENï¿½RICO (Uso directo de la clase base)
   Set componenteGenerico = New clsComponent
   With componenteGenerico
     .Tag = "LIN-4022"
-    .Description = "Línea de transferencia de crudo pesado"
-    .ComponentType = "Línea"
+    .Description = "Lï¿½nea de transferencia de crudo pesado"
+    .ComponentType = "Lï¿½nea"
     .System = "Transferencia"
     .Service = "Recibo"
     .Status = "OP"
   End With
   
-  ' 5. CREACIÓN DE COMPONENTE ESPECIALIZADO (Uso de Composición y Polimorfismo)
+  ' 5. CREACIï¿½N DE COMPONENTE ESPECIALIZADO (Uso de Composiciï¿½n y Polimorfismo)
   Set tanqueEspecializado = New clsTank
   ' Propiedades comunes delegadas internamente a clsComponent
   tanqueEspecializado.Tag = "TK-9010"
@@ -54,38 +54,38 @@ Public Sub EjecutarPrueba_Infraestructura()
   ' Propiedades exclusivas de la clase concreta clsTank
   tanqueEspecializado.Capacity = 15000 ' Capacidad en Barriles (Bbls)
   
-  ' 6. ASOCIACIÓN BIDIRECCIONAL (Adición de componentes a la Estación)
-  ' Pasamos las instancias a través del contrato polimórfico IComponent
-  Debug.Print "-> Registrando componentes en la estación " & miEstacion.Tag & "..."
+  ' 6. ASOCIACIï¿½N BIDIRECCIONAL (Adiciï¿½n de componentes a la Estaciï¿½n)
+  ' Pasamos las instancias a travï¿½s del contrato polimï¿½rfico IComponent
+  Debug.Print "-> Registrando componentes en la estaciï¿½n " & miEstacion.Tag & "..."
   miEstacion.AddComponent componenteGenerico
   miEstacion.AddComponent tanqueEspecializado
-  Debug.Print "-> Registro completado con éxito."
+  Debug.Print "-> Registro completado con ï¿½xito."
   Debug.Print "----------------------------------------------------------------------"
   
   ' 7. PRUEBA DE ROBUSTEZ: Intento de registro de un duplicado para validar control de errores
-  Debug.Print "-> Realizando prueba de tolerancia a fallos (Inserción de Tag Duplicado)..."
+  Debug.Print "-> Realizando prueba de tolerancia a fallos (Inserciï¿½n de Tag Duplicado)..."
   Dim componenteDuplicado As clsComponent
   Set componenteDuplicado = New clsComponent
-  componenteDuplicado.Tag = "LIN-4022" ' Mismo Tag que el componente genérico anterior
-  miEstacion.AddComponent componenteDuplicado ' El método interceptará el error 457 sin romper la ejecución
+  componenteDuplicado.Tag = "LIN-4022" ' Mismo Tag que el componente genï¿½rico anterior
+  miEstacion.AddComponent componenteDuplicado ' El mï¿½todo interceptarï¿½ el error 457 sin romper la ejecuciï¿½n
   Debug.Print "----------------------------------------------------------------------"
   
-  ' 8. RECORRIDO POLIMÓRFICO DE LA COLECCIÓN
-  ' Inspeccionamos los componentes que pertenecen a la estación usando la interfaz común
-  Debug.Print "-> Listando propiedades de los componentes activos de la Estación:"
+  ' 8. RECORRIDO POLIMï¿½RFICO DE LA COLECCIï¿½N
+  ' Inspeccionamos los componentes que pertenecen a la estaciï¿½n usando la interfaz comï¿½n
+  Debug.Print "-> Listando propiedades de los componentes activos de la Estaciï¿½n:"
   For Each itemComponente In miEstacion.Components
-    ' Llama al método ShowProperties de cada objeto de forma dinámica (Late Binding controlado por Interfaz)
+    ' Llama al mï¿½todo ShowProperties de cada objeto de forma dinï¿½mica (Late Binding controlado por Interfaz)
     itemComponente.ShowProperties
   Next itemComponente
   Debug.Print "----------------------------------------------------------------------"
   
-  ' 9. PRUEBA DEL MÉTODO CORREGIDO: RemoveComponent
+  ' 9. PRUEBA DEL Mï¿½TODO CORREGIDO: RemoveComponent
   ' Removemos el componente 'LIN-4022' pasando su Tag identificador
-  Debug.Print "-> Eliminando el componente 'LIN-4022' de la colección..."
+  Debug.Print "-> Eliminando el componente 'LIN-4022' de la colecciï¿½n..."
   miEstacion.RemoveComponent "LIN-4022"
   
   ' Verificamos que se haya eliminado correctamente listando los componentes remanentes
-  Debug.Print "-> Componentes remanentes en la estación tras la remoción (Esperado: 1): " & miEstacion.Components.Count
+  Debug.Print "-> Componentes remanentes en la estaciï¿½n tras la remociï¿½n (Esperado: 1): " & miEstacion.Components.Count
   For Each itemComponente In miEstacion.Components
     Debug.Print "   Componente Restante -> Tag: " & itemComponente.Tag & " | Tipo: " & itemComponente.ComponentType
   Next itemComponente
@@ -100,15 +100,48 @@ Public Sub EjecutarPrueba_Infraestructura()
   Debug.Print "======================================================================"
   
 FinSub:
-  ' Restablecemos la actualización de la pantalla del entorno de Excel
+  ' Restablecemos la actualizaciï¿½n de la pantalla del entorno de Excel
   Application.ScreenUpdating = True
   Exit Sub
 
 ErrHandler:
   ' Bloque de contingencia para capturar fallos no controlados
-  MsgBox "Ocurrió un error inesperado en el módulo de pruebas." & vbCrLf & _
-         "Número: " & Err.Number & vbCrLf & _
-         "Descripción: " & Err.Description, vbCritical, "Error de Sistema - Arquitecto de Soluciones"
+  MsgBox "Ocurriï¿½ un error inesperado en el mï¿½dulo de pruebas." & vbCrLf & _
+         "Nï¿½mero: " & Err.Number & vbCrLf & _
+         "Descripciï¿½n: " & Err.Description, vbCritical, "Error de Sistema - Arquitecto de Soluciones"
   Resume FinSub
 End Sub
 
+
+
+
+
+Sub CalcularInventarioActual()
+    Dim ATK7210 As New clsTank
+    
+    ' ConfiguraciÃ³n basada en tu imagen
+    With ATK7210
+        .Tag = "ATK7210"
+        .RoofWeight = 3200
+        .IsTableNetOfRoof = False ' Tabla contempla el ajuste
+        .HasFloatingRoof = True
+        .TableRefAPI = 76.3
+        .TableBaseDeduction = 29.64
+        .APICorrectionGT = -0.14
+        .APICorrectionLT = 0.14
+        .MinLevelDeduction = 1610
+        .MaxLevelDeduction = 1799
+    End With
+    
+    ' Datos de campo actuales
+    Dim nivelMedido As Double: nivelMedido = 6130
+    Dim apiMedido60 As Double: apiMedido60 = 63.9
+    Dim tempLiq As Double: tempLiq = 84.2
+    Dim apiObs As Double: apiObs = mdAPICalcs.APIOBS(apiMedido60, tempLiq, 2)
+    
+    ' La magia del objeto:
+    Dim vcfMembrana As Double
+    vcfMembrana = ATK7210.GetDynamicFRA(nivelMedido, apiObs)
+    
+    Debug.Print "DeducciÃ³n Final Membrana: " & mdAPICalcs.ROUNDAPI(vcfMembrana, 2, 1) & " Bbls"
+End Sub

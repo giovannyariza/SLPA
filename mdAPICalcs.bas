@@ -864,14 +864,14 @@ Public Function FRA(ByVal RoofWeight As Double, ByVal Dens60 As Double, ByVal CT
   If Not mdHelpers.IsFinite(RoofWeight) Or Not mdHelpers.IsFinite(Dens60) Or Not mdHelpers.IsFinite(CTL) Then GoTo ErrHandler
   
   Dim DensObs As Double
-  ' Densidad en condiciones observadas = Densidad_Std * CTL    
+  ' Densidad en condiciones observadas = Densidad_Std * CTL
   DensObs = Dens60 * CTL
   
   If DensObs > 0.001 Then
     ' FRA = Peso / Densidad_Observada
     FRA = RoofWeight / DensObs
   Else
-      FRA = 0
+    FRA = 0
   End If
 
   ' Validación de Finitud

@@ -24,8 +24,18 @@ Option Explicit
 '   - Capacity (Double): Volumen Nominal (Bbls).
 '   - Diameter (Double): Diametro del tanque (pies/metros).
 '   - Material (Long): Tipo de material (para factor de expansion).
+'   - HasFloatingRoof (Boolean): Indica si tiene techo flotante.
 '   - RoofWeight (Double): Peso del techo flotante (libras/kilos).
 '   - IsInsulated (Boolean): Indica si tiene recubrimiento termico.
+'   - RestingLevel (Double): Nivel donde el techo toca las patas. (Zona Crítica Mínima).
+'   - FloatingLevel (Double): Nivel donde el techo flota libremente. (Zona Crítica Máxima).
+'   - IsTableNetOfRoof (Boolean): Indica si la tabla ya descuenta el volumen desplazado por el techo.
+'   - TableRefAPI (Double): API Observado de referencia.
+'   - TableBaseDeduction (Double): Deducción volumen por desplazamiento de la Membrana.
+'   - APICorrectionGT (Double): Volumen corregido por cada grado API mayor al API Observado de referencia.
+'   - APICorrectionLT (Double): Volumen corregido por cada grado API menor al API Observado de referencia.
+'   - MinLevelDeduction (Double): Nivel mínimo de deducción.
+'   - MaxLevelDeduction (Double): Nivel máximo de deducción.
 '
 ' METODOS:
 '   - ShowProperties: Muestra las propiedades del Tanque.
@@ -42,8 +52,18 @@ Private baseComponent_ As clsComponent
 Private capacity_ As Double
 Private diameter_ As Double
 Private material_ As Long
+Private hasFloatingRoof_ As Boolean
 Private roofWeight_ As Double
 Private isInsulated_ As Boolean
+Private restingLevel_ As Double
+Private floatingLevel_ As Double
+Private isTableNetOfRoof_ As Boolean
+Private tableRefAPI_ As Double
+Private tableBaseDeduction_ As Double
+Private apiCorrectionGT_ As Double
+Private apiCorrectionLT_ As Double
+Private minLevelDeduction_ As Double
+Private maxLevelDeduction_ As Double
 
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS DE INSTANCIA DE CLASE
@@ -140,6 +160,22 @@ Public Property Let Diameter(ByVal value As Double)
   diameter_ = value
 End Property
 
+Public Property Get Material() As Long
+  Material = material_
+End Property
+
+Public Property Let Material(ByVal value As Long)
+  material_ = value
+End Property
+
+Public Property Get HasFloatingRoof() As Boolean
+  HasFloatingRoof = hasFloatingRoof_
+End Property
+
+Public Property Let HasFloatingRoof(ByVal value As Boolean)
+  hasFloatingRoof_ = value
+End Property
+
 Public Property Get RoofWeight() As Double
   RoofWeight = roofWeight_
 End Property
@@ -151,14 +187,6 @@ Public Property Let RoofWeight(ByVal value As Double)
   roofWeight_ = value
 End Property
 
-Public Property Get Material() As Long
-  Material = material_
-End Property
-
-Public Property Let Material(ByVal value As Long)
-  material_ = value
-End Property
-
 Public Property Get IsInsulated() As Boolean
   IsInsulated = isInsulated_
 End Property
@@ -167,11 +195,86 @@ Public Property Let IsInsulated(ByVal value As Boolean)
   isInsulated_ = value
 End Property
 
+Public Property Let RestingLevel(ByVal value As Double)
+  restingLevel_ = value
+End Property
+
+Public Property Get RestingLevel() As Double
+  RestingLevel = restingLevel_
+End Property
+
+Public Property Let FloatingLevel(ByVal value As Double)
+  floatingLevel_ = value
+End Property
+
+Public Property Get FloatingLevel() As Double
+  FloatingLevel = floatingLevel_
+End Property
+
+Public Property Let IsTableNetOfRoof(ByVal value As Boolean)
+  isTableNetOfRoof_ = value
+End Property
+
+Public Property Get IsTableNetOfRoof() As Boolean
+  IsTableNetOfRoof = isTableNetOfRoof_
+End Property
+
+Public Property Let TableRefAPI(ByVal value As Double)
+  tableRefAPI_ = value
+End Property
+
+Public Property Get TableRefAPI() As Double
+  TableRefAPI = tableRefAPI_
+End Property
+
+Public Property Let TableBaseDeduction(ByVal value As Double)
+  tableBaseDeduction_ = value
+End Property
+
+Public Property Get TableBaseDeduction() As Double
+  TableBaseDeduction = tableBaseDeduction_
+End Property
+
+Public Property Let APICorrectionGT(ByVal value As Double)
+  apiCorrectionGT_ = value
+End Property
+
+Public Property Get APICorrectionGT() As Double
+  APICorrectionGT = apiCorrectionGT_
+End Property
+
+Public Property Let APICorrectionLT(ByVal value As Double)
+  apiCorrectionLT_ = value
+End Property
+
+Public Property Get APICorrectionLT() As Double
+  APICorrectionLT = apiCorrectionLT_
+End Property
+
+Public Property Let MinLevelDeduction(ByVal value As Double)
+  minLevelDeduction_ = value
+End Property
+
+Public Property Get MinLevelDeduction() As Double
+  MinLevelDeduction = minLevelDeduction_
+End Property
+
+Public Property Let MaxLevelDeduction(ByVal value As Double)
+  maxLevelDeduction_ = value
+End Property
+
+Public Property Get MaxLevelDeduction() As Double
+  MaxLevelDeduction = maxLevelDeduction_
+End Property
+
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS PUBLICOS
 ' ---------------------------------------------------------------------------------------------------------
 
-' Muestra las propiedades del tanque en la ventana inmediato
+' ---------------------------------------------------------------------------------------------------------
+' MÉTODO: ShowProperties
+' DESCRIPCIÓN: Muestra las propiedades del tanque en la ventana inmediato.
+' ---------------------------------------------------------------------------------------------------------
 Public Sub ShowProperties()
   On Error Resume Next
   Debug.Print "--- Detalle de Tanque ---"
@@ -185,6 +288,64 @@ Public Sub ShowProperties()
   End If
   Debug.Print "-------------------------"
 End Sub
+
+' ---------------------------------------------------------------------------------------------------------
+' MÉTODO: GetDynamicFRA
+' DESCRIPCIÓN: Orquesta la deducción de volumen según el tipo de tabla y condiciones de campo.
+' ---------------------------------------------------------------------------------------------------------
+Public Function GetDynamicFRA(ByVal currentLevel As Double, ByVal actualAPIObs As Double) As Double
+  On Error GoTo ErrHandler
+  
+' Verificación de hardware (Crucial: Debe estar en True)
+  If Not hasFloatingRoof_ Then Exit Function
+  
+  ' Verificación de nivel (mm)
+  If currentLevel <= minLevelDeduction_ Then Exit Function
+
+  Dim totalPotentialDeduction As Double
+  
+  ' DECISIÓN DE LÓGICA: ¿Tabla Bruta o Tabla Neta?
+  If Not isTableNetOfRoof_ Then
+    ' --- CASO A: TABLA BRUTA (Arquímedes) ---
+    ' Calculamos la densidad observada a partir del API medido
+    Dim densObs As Double
+    densObs = mdConversion.CONVDENS(actualAPIObs, A2S, True)
+    
+    ' FRA = Peso / Densidad (Usando el motor de mdAPICalcs)
+    totalPotentialDeduction = mdAPICalcs.FRA(roofWeight_, densObs, 1)
+      
+  Else
+    ' --- CASO B: TABLA NETA (Ajuste por Coeficientes API) ---
+    ' Implementamos la lógica de tu tabla de aforo ATK-7210
+    Dim diffAPI As Double: diffAPI = actualAPIObs - tableRefAPI_
+    
+    If diffAPI > 0 Then
+      ' API Real > Referencia (Líquido más liviano, más deducción)
+      totalPotentialDeduction = diffAPI * apiCorrectionGT_
+    Else
+      ' API Real < Referencia (Líquido más pesado, menos deducción)
+      totalPotentialDeduction = Abs(diffAPI) * apiCorrectionLT_
+    End If
+  End If
+
+  ' AJUSTE POR NIVEL (Zona de Flotación Parcial)
+  ' Si el nivel está entre Min y Max, la membrana no desplaza su peso total
+  If currentLevel >= maxLevelDeduction_ Then
+    ' Flotación Total
+    GetDynamicFRA = totalPotentialDeduction
+  Else
+    ' Interpolación Lineal en la transición
+    Dim partialFactor As Double
+    partialFactor = (currentLevel - minLevelDeduction_) / (maxLevelDeduction_ - minLevelDeduction_)
+    GetDynamicFRA = totalPotentialDeduction * partialFactor
+  End If
+
+  Exit Function
+
+ErrHandler:
+  Debug.Print "Error en GetDynamicFRA [" & Me.Tag & "]: " & Err.Description
+  GetDynamicFRA = 0
+End Function
 
 ' ---------------------------------------------------------------------------------------------------------
 ' IMPLEMENTACION EXPLICITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
