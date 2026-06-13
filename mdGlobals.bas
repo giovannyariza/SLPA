@@ -148,12 +148,32 @@ Public Const cRHO_JET_FUEL As Double = 787.5195
 Public Const cRHO_TRANSITION As Double = 770.352
 Public Const cRHO_GASOLINE As Double = 610.6
 
+' Coeficientes Da
+Public Const cDA_CRUDE As Double = 2
+Public Const cDA_FUEL_OIL As Double = 1.3
+Public Const cDA_JET_FUEL As Double = 2
+Public Const cDA_TRANSITION As Double = 8.5
+Public Const cDA_GASOLINES As Double = 1.5
+Public Const cDA_LUBRICANTS As Double = 1
+
+' Constantes de Conversión de Densidad API
+Public Const cAPI_A As Double = 141.5
+Public Const cAPI_B As Double = 131.5
+
+' Factor utilizado en el término de la derivada de CTL (Dt) para el cálculo iterativo de API_60
+Public Const cAPI_F16 As Double = 1.6
+
 ' Coeficientes FP: Compresibilidad
 Public Const cFP_A As Double = -1.9947
 Public Const cFP_B As Double = 0.00013427
 Public Const cFP_C As Long = 793920
 Public Const cFP_D As Integer = 2326
-Public Const cPRESS_SCALING_API As Integer = 2326
+
+' Constantes Derivada FP
+Public Const cFPDERIVATIVE_A As Double = 7.9392
+Public Const cFPDERIVATIVE_B As Double = 0.02326
+
+Public Const cPRESS_SCALING_API As Integer = 0.00001
 
 ' Coeficientes Expansión Térmica del Casco
 Public Const cCTSH_MCRBN_F As Double = 0.0000062
@@ -164,6 +184,11 @@ Public Const cCTSH_ST316_F As Double = 0.00000883
 Public Const cCTSH_ST316_C As Double = 0.0000159
 Public Const cCTSH_ST4PH_F As Double = 0.000006
 Public Const cCTSH_ST4PH_C As Double = 0.0000108
+
+' Factor para calcular la Densidad a 60F en la escala IPTS-68
+Public Const cTAYLOR As Double = 0.8
+
+Public Const cEPSILON As Double = 0.000001
 
 ' Propiedades de Materiales (API 650 / 12.1.1)
 Public Const cYOUNG_MODULUS_STEEL_IMP As Double = 30000000
@@ -186,29 +211,7 @@ Public Const cShrinkageFactorSI_Const As Double = 2.69E-04
 Public Const cShrinkageFactor_Exp1 As Double = 0.819
 Public Const cShrinkageFactor_Exp2 As Double = 2.28
 
-'
-Public Const cFloatComparison_Epsilon As Double = 0.000000000001
-
-'
 Public Const cErrorSentinel As Double = -999999
-
--------------------------------------------------------------------------------------------------
-' Constantes de Desplazamiento de Temperatura
-Public Const cC2K_Offset As Double = 273.15
-Public Const cC2R_Offset As Double = 491.67
-Public Const cF2R_Offset As Double = 459.67
-' -------------------------------------------------------------------------------------------------
-' Constantes de Escala de Temperatura para Corrección ITS-90 a IPTS-68
-Public Const cTempScale_Min As Double = -183
-Public Const cTempScale_Max As Double = 630
-' -------------------------------------------------------------------------------------------------
-' Constantes de Conversión de Temperatura
-Public Const cC2F_Factor As Double = 9 / 5
-Public Const cF2C_Factor As Double = 5 / 9
-' -------------------------------------------------------------------------------------------------
-' Constantes de Conversión de Presión
-Public Const cPSI2KPA As Double = 6.8947590868
-Public Const cPSI2BAR As Double = 6.8947590868E-2
 ' -------------------------------------------------------------------------------------------------
 ' Constantes de Conversión de Volumen
 ' https://www.convertworld.com/es/volumen/
@@ -228,72 +231,10 @@ Public Const cMT2CM As Double = 100
 Public Const cMT2FT As Double = 3.280839895
 Public Const cMT2IN As Double = 39.37007874
 ' -------------------------------------------------------------------------------------------------
-' Constantes de Conversión de Densidad API
-Public Const cAPI_Factor1 As Double = 141.5
-Public Const cAPI_Factor2 As Double = 131.5
-' -------------------------------------------------------------------------------------------------
-' Factor utilizado en el término exponencial para calcular la Densidad a 60F en la escala IPTS-68
-Public Const cAPI_Factor08 As Double = 0.8
-' -------------------------------------------------------------------------------------------------
-' Factor utilizado en el término de la derivada de CTL (Dt) para el cálculo iterativo de API_60
-Public Const cAPI_Factor16 As Double = 1.6
-' -------------------------------------------------------------------------------------------------
 ' Rango de Gravedad API a 60°F para Crudos y Productos Refinados
-Public Const cAPI60_RangeCrudeRefined_Min As Double = 0
-Public Const cAPI60_RangeCrudeRefined_Max As Double = 130
+' Public Const cAPI60_RangeCrudeRefined_Min As Double = 0
+' Public Const cAPI60_RangeCrudeRefined_Max As Double = 130
 ' -------------------------------------------------------------------------------------------------
 ' Rango de Gravedad API a 60°F para Aceites Lubricantes
-Public Const cAPI60_RangeLubricant_Min As Double = 0
-Public Const cAPI60_RangeLubricant_Max As Double = 40
-' -------------------------------------------------------------------------------------------------
-' Rangos de Densidad Relativa para Crudos, Refinados y Lubricantes
-Public Const cRho60_RangeCrude_Min As Double = 610.6
-Public Const cRho60_RangeCrude_Max As Double = 1163.5
-Public Const cRho60_RangeFuelOils_Min As Double = 838.3127
-Public Const cRho60_RangeFuelOils_Max As Double = 1163.5
-Public Const cRho60_RangeJetFuels_Min As Double = 787.5195
-Public Const cRho60_RangeJetFuels_Max As Double = 838.3127
-Public Const cRho60_RangeTransition_Min As Double = 770.352
-Public Const cRho60_RangeTransition_Max As Double = 787.5195
-Public Const cRho60_RangeGasolines_Min As Double = 610.6
-Public Const cRho60_RangeGasolines_Max As Double = 770.352
-Public Const cRho60_RangeLubricant_Min As Double = 800.9
-Public Const cRho60_RangeLubricant_Max As Double = 1163.5
-' -------------------------------------------------------------------------------------------------
-' Coeficientes FP
-Public Const cFP_CoefA As Double = -1.9947
-Public Const cFP_CoefB As Double = 0.00013427
-Public Const cFP_CoefC As Long = 793920
-Public Const cFP_CoefD As Integer = 2326
-' -------------------------------------------------------------------------------------------------
-' Constantes Derivada FP
-Public Const cFPDerivative_Const1 As Double = 7.9392
-Public Const cFPDerivative_Const2 As Double = 0.02326
-' -------------------------------------------------------------------------------------------------
-' Coeficientes HYC
-Public Const cHYCF_Coef1 As Double = 0.00001278
-Public Const cHYCF_Coef2 As Double = 0.0000000062
-Public Const cHYCC_Coef1 As Double = 0.000233
-Public Const cHYCC_Coef2 As Double = 0.00000023
-' -------------------------------------------------------------------------------------------------
-' Coeficientes TSH
-Public Const cTSH_CoefLiq As Double = 7
-Public Const cTSH_Divisor As Double = 8
-' -------------------------------------------------------------------------------------------------
-' Coeficientes Expansión Térmica del Casco
-Public Const cCTSH_CoefMCrbn_F As Double = 0.0000062
-Public Const cCTSH_CoefMCrbn_C As Double = 0.0000112
-Public Const cCTSH_CoefSt304_F As Double = 0.0000096
-Public Const cCTSH_CoefSt304_C As Double = 0.0000173
-Public Const cCTSH_CoefSt316_F As Double = 0.00000883
-Public Const cCTSH_CoefSt316_C As Double = 0.0000159
-Public Const cCTSH_CoefSt4PH_F As Double = 0.000006
-Public Const cCTSH_CoefSt4PH_C As Double = 0.0000108
-' -------------------------------------------------------------------------------------------------
-' Coeficientes Da
-Public Const cDA_CoefCrude As Double = 2
-Public Const cDA_CoefRefined1 As Double = 1.3
-Public Const cDA_CoefRefined2 As Double = 2
-Public Const cDA_CoefRefined3 As Double = 8.5
-Public Const cDA_CoefRefined4 As Double = 1.5
-Public Const cDA_CoefLubricant As Double = 1
+' Public Const cAPI60_RangeLubricant_Min As Double = 0
+' Public Const cAPI60_RangeLubricant_Max As Double = 40

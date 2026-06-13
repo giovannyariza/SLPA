@@ -55,10 +55,10 @@ Public Function HYC(ByVal TmpObs As Double, Optional TmpUnits As eTmpUnits = F) 
   If Not mdHelpers.IsFinite(TmpObs) Then GoTo ErrHandler
 
   ' Coeficientes HYC
-  Const cHYCF_Coef1 As Double = 0.00001278
-  Const cHYCF_Coef2 As Double = 0.0000000062 ' Escala Fahrenheit
-  Const cHYCC_Coef1 As Double = 0.000233
-  Const cHYCC_Coef2 As Double = 0.00000023 ' Escala Celsius
+  Const cHYCF_A As Double = 0.00001278
+  Const cHYCF_B As Double = 0.0000000062 ' Escala Fahrenheit
+  Const cHYCC_C As Double = 0.000233
+  Const cHYCC_D As Double = 0.00000023 ' Escala Celsius
 
   Dim tempObsF As Double ' Temperatura observada convertida a Fahrenheit
   Dim tempObsC As Double ' Temperatura observada convertida a Celsius
@@ -69,11 +69,11 @@ Public Function HYC(ByVal TmpObs As Double, Optional TmpUnits As eTmpUnits = F) 
     Case F, R:
       tempObsF = mdConversion.CONVTEMP(TmpObs, IIF(TmpUnits = F, F, R2F))
       deltaT = tempObsF - cTEMPBASE_F
-      HYC = 1 - (cHYCF_Coef1 * deltaT) - (cHYCF_Coef2 * (deltaT ^ 2))
+      HYC = 1 - (cHYCF_A * deltaT) - (cHYCF_B * (deltaT ^ 2))
     Case C, K:
       tempObsC = mdConversion.CONVTEMP(TmpObs, IIF(TmpUnits = C, C, K2C))
       deltaT = tempObsC - cTEMPBASE_C
-      HYC = 1 - (cHYCC_Coef1 * deltaT) - (cHYCC_Coef2 * (deltaT ^ 2))
+      HYC = 1 - (cHYCC_C * deltaT) - (cHYCC_D * (deltaT ^ 2))
     Case Else:
       HYC = 1 ' Unidad no reconocida
   End Select
@@ -110,7 +110,7 @@ Public Function DENSHYC(ByVal DensObs As Double, ByVal TmpObs As Double, Optiona
   ' Convertir la densidad observada a Kg/m³ como base para la corrección
   Select Case DensUnits
     Case API
-        If DensObs <= -131.5 Then GoTo ErrHandler ' Límite físico API
+        If DensObs <= -cAPI_B Then GoTo ErrHandler ' Límite físico API
         DensObsInKGM = mdConversion.CONVDENS(DensObs, A2K, True)
     Case KGM
         If DensObs <= 0 Then GoTo ErrHandler
@@ -262,7 +262,7 @@ Public Function ALPHA60(ByVal API60 As Double, Optional TypeLiq As eTypeLiq = CR
   If Not mdHelpers.IsFinite(API60) Then GoTo ErrHandler
 
   ' Validación de Integridad
-  If API60 <= -131.5 Then GoTo ErrHandler
+  If API60 <= -cAPI_B Then GoTo ErrHandler
 
   Dim Rho60 As Double
   ' Convertir la Gravedad API60 (ITS-90) en Kg/m³ relativo al agua
@@ -303,7 +303,7 @@ End Function
 ''' <param name="TypeLiq">Tipo de líquido (CRD, REF, LUB).</param>
 ''' <param name="Rho60">Densidad a 60F (ITS-90) en Kg/m³ relativo al agua</param>
 ''' <returns>Constantes para el cálculo del factor Alfa a 60°F por tipo de producto.</returns>
-Private Sub GetKConstants(ByVal TypeLiq As eTypeLiq, ByVal Rho60 As Double, ByRef K0 As Double, ByRef K1 As Double, ByRef K2 As Double)  
+Public Sub GetKConstants(ByVal TypeLiq As eTypeLiq, ByVal Rho60 As Double, ByRef K0 As Double, ByRef K1 As Double, ByRef K2 As Double)  
   ' Inicializamos en cero por seguridad
   K0 = 0: K1 = 0: K2 = 0
 
@@ -316,13 +316,13 @@ Private Sub GetKConstants(ByVal TypeLiq As eTypeLiq, ByVal Rho60 As Double, ByRe
         
     Case REF ' Tabla 6B: Productos Refinados
       ' Selección por rangos de densidad ITS-90
-      If Rho60 >= cRHO_FUEL_OIL Then      ' Fuel Oils
+      If Rho60 >= cRHO_FUEL_OIL Then ' Fuel Oils
           K0 = 103.872: K1 = 0.2701: K2 = 0
-      ElseIf Rho60 >= cRHO_JET_FUEL Then   ' Jet Fuels
+      ElseIf Rho60 >= cRHO_JET_FUEL Then ' Jet Fuels
           K0 = 330.301: K1 = 0: K2 = 0
-      ElseIf Rho60 >= cRHO_TRANSITION Then    ' Transition Zone
+      ElseIf Rho60 >= cRHO_TRANSITION Then ' Transition Zone
           K0 = 1489.067: K1 = 0: K2 = -0.0018684
-      ElseIf Rho60 >= cRHO_GASOLINE Then      ' Gasolines
+      ElseIf Rho60 >= cRHO_GASOLINE Then ' Gasolines
           K0 = 192.4571: K1 = 0.2438: K2 = 0
       End If
 
@@ -347,7 +347,7 @@ Public Function FP(ByVal API60 As Double, ByVal TempF As Double, Optional TypeLi
   If Not mdHelpers.IsFinite(API60) Or Not mdHelpers.IsFinite(TempF) Then GoTo ErrHandler
 
   ' Validaciones de Rangos Físicos (Límites estándar API 11.1)
-  If API60 <= -131.5 Then GoTo ErrHandler
+  If API60 <= -cAPI_B Then GoTo ErrHandler
 
   ' Temperatura observada convertida a IPTS-68 Celsius
   Dim TempC68 As Double
@@ -407,7 +407,7 @@ Public Function CTL(ByVal API60 As Double, ByVal TempF As Double, Optional TypeL
   If Not mdHelpers.IsFinite(API60) Or Not mdHelpers.IsFinite(TempF) Then GoTo ErrHandler
 
   ' Validaciones de Rangos Físicos (Límites estándar API 11.1)
-  If API60 <= -131.5 Or TempF < -350 Or TempF > 600 Then GoTo ErrHandler
+  If API60 <= -cAPI_B Or TempF < cTEMPVALIDRANGE_MIN Or TempF > cTEMPVALIDRANGE_MAX Then GoTo ErrHandler
 
   Dim Alfa60 As Double      
   ' Coeficiente de expansión térmica a 60F (en 1/°F)
@@ -422,14 +422,13 @@ Public Function CTL(ByVal API60 As Double, ByVal TempF As Double, Optional TypeL
 
   Dim DeltaT As Double
   ' Calcular la diferencia de temperatura con la temperatura base 60F (en IPTS-68 Fahrenheit)
-  DeltaT = TempF68 - 60  
+  DeltaT = TempF68 - cTEMPBASE_F  
   
   ' Calcular el Factor de Corrección por Temperatura (CTL)
   ' Fórmula (API MPMS 11.1 2007 Pág 15): exp[-Alpha_60 * Delta_t * (1 + 0.8 * Alpha_60 * Delta_t)]
   Dim exponente As Double
-  Const cTaylor As Double = 0.8
   
-  exponente = -Alfa60 * DeltaT * (1 + cTaylor * Alfa60 * DeltaT)
+  exponente = -Alfa60 * DeltaT * (1 + cTAYLOR * Alfa60 * DeltaT)
 
   ' Prevención de desbordamiento (Overflow)
   If exponente > 700 Then 
@@ -471,7 +470,7 @@ Public Function CPL(ByVal API60 As Double, ByVal TempF As Double, ByVal Pres As 
      Not mdHelpers.IsFinite(Pres) Or Not mdHelpers.IsFinite(Pe) Then GoTo ErrHandler
   
   ' Validaciones de Rangos Físicos API 11.1
-  If Pres < Pe Or Pres > 20000 Or API60 <= -131.5 Then GoTo ErrHandler
+  If Pres < Pe Or Pres > cPRESSVALIDRANGE_MAX Or API60 <= -cAPI_B Then GoTo ErrHandler
 
   Dim Fcp As Double
   ' Hallar el Factor de Compresibilidad Escalado (FP)
@@ -523,7 +522,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
 
   ' Validaciones de Integridad y Finitud (mdHelpers)
   If Not mdHelpers.IsFinite(APIOBS) Or Not mdHelpers.IsFinite(TempObs) Then Exit Function
-  If APIOBS <= -131.5 Then Exit Function
+  If APIOBS <= -cAPI_B Then Exit Function
   
   ' Convertir temperatura observada de ITS-90 F a IPTS-68 F y C UNA VEZ fuera del bucle
   Dim TempObs_F68 As Double
@@ -534,7 +533,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
   
   ' Calcular Delta_t en Fahrenheit IPTS-68
   Dim DeltaT_F68 As Double
-  DeltaT_F68 = TempObs_F68 - 60
+  DeltaT_F68 = TempObs_F68 - cTEMPBASE_F
 
   ' Convertir APIOBS (ITS-90) a Densidad observada en Kg/m³ (RhoObs)
   Dim RhoObs As Double
@@ -545,8 +544,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
   Rho60 = RhoObs
   
   ' Iniciar el proceso iterativo (Método de Newton)
-  Const MaxIterations As Long = 25 ' Número máximo de iteraciones
-  Const Tolerance As Double = 0.00001 ' Tolerancia para la diferencia de densidad (Kg/m³)
+  Const MAXITERATIONS As Long = 25 ' Número máximo de iteraciones
   Dim m As Byte ' Contador de iteraciones
   Dim API60_Iter As Double  ' API60 (ITS-90) correspondiente a Rho60_Iter
   Dim Alfa60_Iter As Double ' Alfa60 (1/°F) para API60_Iter
@@ -563,7 +561,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
   Dim Dp_Denom As Double  
   Dim DRho60 as Double      ' Corrección (DRho60) usando la derivada (Método de Newton)
 
-  For m = 1 To MaxIterations
+  For m = 1 To MAXITERATIONS
     ' Convertir el Rho60_Iter (supuesto, ITS-90) a API60_Iter (ITS-90)
     API60_Iter = mdConversion.CONVDENS(Rho60, K2A, True)
 
@@ -583,7 +581,7 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
     Em = (RhoObs / CTPL_Iter) - Rho60
 
     ' Criterio de parada
-    If Abs(Em) < Tolerance Then
+    If Abs(Em) < cEPSILON Then
       API60F = API60_Iter
       Exit Function
     End If
@@ -594,17 +592,17 @@ Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLi
 
     ' Calcular el término Dt (API MPMS 11.1 2007 Apéndice E E.3)
     ' Dt = Da * Alpha_60 * Delta_t * (1 + 1.6 * Alpha_60 * Delta_t)
-    Dt = Da * Alfa60_Iter * DeltaT_F68 * (1 + 1.6 * Alfa60_Iter * DeltaT_F68)
+    Dt = Da * Alfa60_Iter * DeltaT_F68 * (1 + cAPI_F16 * Alfa60_Iter * DeltaT_F68)
 
     ' Obtener FP_Iter para el API60_Iter actual y TempObs (ITS-90 F). CPL llamó a FP, pero la derivada necesita FP_Iter explícitamente.
     FP_Iter = FP(API60_Iter, TempObs, TypeLiq)
 
     ' Calcular el término Dp (API MPMS 11.1 2007 Apéndice E E.5)
     ' Dp = -(2 * CPL_m * P_obs * F_cp_m * (7.9392 + 0.02326 * TempObs_C68)) / (rho_m^2 * Alpha_60_m)
-    Dp_Num = -(2 * CPL_Iter * (PresObs - Pe) * (FP_Iter * Tolerance) * (7.9392 + 0.02326 * TempObs_C68))
+    Dp_Num = -(2 * CPL_Iter * (PresObs - Pe) * (FP_Iter * cEPSILON) * (cFPDERIVATIVE_A + cFPDERIVATIVE_B * TempObs_C68))
     Dp_Denom = (Rho60 ^ 2 * Alfa60_Iter)
 
-    If Abs(Dp_Denom) > 0.0000000001 Then
+    If Abs(Dp_Denom) > cEPSILON Then
       Dp = Dp_Num / Dp_Denom
     Else
       Dp = 0
@@ -640,17 +638,17 @@ End Function
 
 Private Function GetDaCoefficient(ByVal TypeLiq As eTypeLiq, ByVal Rho60 As Double) As Double
   Select Case TypeLiq
-    Case CRD: GetDaCoefficient = 2   ' Crudos (Tabla 6A)
-    Case LUB: GetDaCoefficient = 1   ' Lubricantes (Tabla 6D)
+    Case CRD: GetDaCoefficient = cDA_CRUDE      ' Crudos (Tabla 6A)
+    Case LUB: GetDaCoefficient = cDA_LUBRICANTS ' Lubricantes (Tabla 6D)
     Case REF ' Productos Refinados (Tabla 6B)
       If Rho60 >= cRHO_FUEL_OIL Then
-        GetDaCoefficient = 1.3       ' Fuel Oils
+        GetDaCoefficient = cDA_FUEL_OIL       ' Fuel Oils
       ElseIf Rho60 >= cRHO_JET_FUEL Then
-        GetDaCoefficient = 2         ' Jet Fuels
+        GetDaCoefficient = cDA_JET_FUEL       ' Jet Fuels
       ElseIf Rho60 >= cRHO_TRANSITION Then
-        GetDaCoefficient = 8.5       ' Transition
+        GetDaCoefficient = cDA_TRANSITION     ' Transition
       Else
-        GetDaCoefficient = 1.5       ' Gasolines
+        GetDaCoefficient = cDA_GASOLINES      ' Gasolines
       End If
     Case Else
       GetDaCoefficient = 0
@@ -673,7 +671,7 @@ Public Function APIOBS(ByVal API60 As Double, ByVal TempF As Double, Optional Ty
   If Not mdHelpers.IsFinite(API60) Or Not mdHelpers.IsFinite(TempF) Then GoTo ErrHandler
   
   ' Límites físicos de la escala API
-  If API60 <= -131.5 Then GoTo ErrHandler
+  If API60 <= -cAPI_B Then GoTo ErrHandler
   
   Dim Rho60 As Double
   ' Convertir API60 (BASE) a Densidad (ITS-90) en Kg/m³ a 60F
@@ -744,14 +742,14 @@ Public Function ROUNDAPI(ByVal Val As Double, ByVal PosDec As Long, Optional ByV
   ' Obtener la parte decimal del valor normalizado
   DecPart = NormVal - IntPart
   
-  Const EPSILON As Double = 0.0000000001 ' Pequeña tolerancia para comparación de punto flotante
+  Const cEPSILON As Double = 0.0000000001 ' Pequeña tolerancia para comparación de punto flotante
   Dim ValRounded as Double ' Valor truncado para el redondeo especial de 0.5  
   
   ' Truncar el valor normalizado para el redondeo especial de 0.5 Regla API:
   ' Si la parte decimal es EXACTAMENTE 0.5, redondear al ENTERO PAR más cercano.
   ' Si la parte decimal es > 0.5, redondear hacia arriba (IntPart + 0.5) si no fuera por la regla API.
   ' Si la parte decimal es < 0.5, redondear hacia abajo IntPart.
-  If Abs(DecPart - 0.5) < EPSILON Then ' Si la parte fraccionaria es muy cercana a 0.5
+  If Abs(DecPart - 0.5) < cEPSILON Then ' Si la parte fraccionaria es muy cercana a 0.5
     ' La parte fraccionaria es 0.5. Verificar si el ENTERO de NormVal es par o impar.
     If (IntPart Mod 2) <> 0 Then ' Si el entero es IMPAR
       ValRounded = IntPart + 1 ' Redondear hacia arriba para hacerlo PAR

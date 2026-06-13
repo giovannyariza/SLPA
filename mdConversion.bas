@@ -114,11 +114,9 @@ End Function
 
 Public Function CONVDENS(ByVal Density As Double, ConvDns As eConvDns, Optional WaterRel As Boolean = True) As Double
   On Error GoTo ErrHandler
-
-  ' Constantes de Conversión de Densidad API
-  Const A As Double = 141.5
-  Const B As Double = 131.5
-  Const WDK60 As Double = 999.016 ' Densidad del agua a 60 grados Fahrenheit (15.56 °C) en Kg/m³.
+  
+  ' Densidad del agua a 60 grados Fahrenheit (15.56 °C) en Kg/m³.
+  Const WDK60 As Double = cWATERDENSKG_60F
 
   Dim WDK As Double, WDS As Double
   
@@ -133,15 +131,15 @@ Public Function CONVDENS(ByVal Density As Double, ConvDns As eConvDns, Optional 
   
   Select Case ConvDns
     Case A2S  ' API a SGU
-      CONVDENS = (A / (Density + B)) * WDS
+      CONVDENS = (cAPI_A / (Density + cAPI_B)) * WDS
     Case A2K  ' API a Kg/m3
-      CONVDENS = (A / (Density + B)) * WDK
+      CONVDENS = (cAPI_A / (Density + cAPI_B)) * WDK
     Case S2A  ' SGU a API
-      CONVDENS = (A * WDS / Density) - B
+      CONVDENS = (cAPI_A * WDS / Density) - cAPI_B
     Case S2K  ' SGU a Kg/m3
       CONVDENS = Density * WDK
     Case K2A  ' Kg/m3 a API
-      CONVDENS = A / (Density / WDK) - B
+      CONVDENS = cAPI_A / (Density / WDK) - cAPI_B
     Case K2S  ' Kg/m3 a SGU
       CONVDENS = Density / WDK
     Case Else
@@ -226,42 +224,16 @@ End Function
 Function CONVDENS68(ByVal API60 As Double, Optional TypeLiq As eTypeLiq = CRD, Optional ByVal Alfa60 As Double) As Double
   ' Control de errores estructurado para mitigar divisiones por cero accidentales en celdas vacías o datos corruptos
   On Error GoTo ErrHandler
-
-  Dim RngTbl(1 To 6, 1 To 5) As Double
-  Dim LimInf As Double, LimSup As Double
   
   Dim K0 As Double, K1 As Double, K2 As Double
   Dim A As Double, B As Double, Rho60 As Double
-  Dim i As Byte
   
   ' Conversion de la Gravedad API60 a Densidad en Kg/m3 Relativa a la Densidad del Agua a 60 F.
   Rho60 = CONVDENS(API60, A2K, True)
   
   If Alfa60 = 0 Then
-    ' Matriz de Rangos de densidad y coeficientes API Capítulo 11.1.
-    RngTbl(1, 1) = 610.6:     RngTbl(1, 2) = 1163.5:    RngTbl(1, 3) = 341.0957:  RngTbl(1, 4) = 0:        RngTbl(1, 5) = 0
-    RngTbl(2, 1) = 838.3127:  RngTbl(2, 2) = 1163.5:    RngTbl(2, 3) = 103.872:   RngTbl(2, 4) = 0.2701:   RngTbl(2, 5) = 0
-    RngTbl(3, 1) = 787.5195:  RngTbl(3, 2) = 838.3127:  RngTbl(3, 3) = 330.301:   RngTbl(3, 4) = 0:        RngTbl(3, 5) = 0
-    RngTbl(4, 1) = 770.352:   RngTbl(4, 2) = 787.5195:  RngTbl(4, 3) = 1489.067:  RngTbl(4, 4) = 0:        RngTbl(4, 5) = -0.0018684
-    RngTbl(5, 1) = 610.6:     RngTbl(5, 2) = 770.352:   RngTbl(5, 3) = 192.4571:  RngTbl(5, 4) = 0.2438:   RngTbl(5, 5) = 0
-    RngTbl(6, 1) = 800.9:     RngTbl(6, 2) = 1163.5:    RngTbl(6, 3) = 0:         RngTbl(6, 4) = 0.34878:  RngTbl(6, 5) = 0
-    
-    ' Valores de contingencia iniciales por seguridad analítica
-    K0 = 0: K1 = 0: K2 = 0
-
-    ' Seleccion de las constantes dependiendo del tipo de liquido y su densidad.
-    Select Case TypeLiq
-      Case CRD
-        LimInf = RngTbl(1, 1): LimSup = RngTbl(1, 2): K0 = RngTbl(1, 3): K1 = RngTbl(1, 4):   K2 = RngTbl(1, 5)  ' Tabla 6A
-      Case REF
-        For i = 2 To 5
-          If Rho60 >= RngTbl(i, 1) And Rho60 < RngTbl(i, 2) Then
-            LimInf = RngTbl(i, 1): LimSup = RngTbl(i, 2): K0 = RngTbl(i, 3):   K1 = RngTbl(i, 4):   K2 = RngTbl(i, 5)
-          End If
-        Next i  ' Tabla 6B
-      Case LUB
-        LimInf = RngTbl(6, 1): LimSup = RngTbl(6, 2): K0 = RngTbl(6, 3):   K1 = RngTbl(6, 4):   K2 = RngTbl(6, 5)  ' Tabla 6D
-    End Select
+    ' Selección de Constantes K (API MPMS 11.1 Tablas 6A, 6B, 6D)
+    Call GetKConstants(TypeLiq, Rho60, K0, K1, K2)
 
     ' Blindaje analítico secundario: Si la densidad no cuadró en ningún rango, se evita el cálculo hidrodinámico
     If K0 = 0 And K1 = 0 And K2 = 0 Then GoTo ErrHandler
