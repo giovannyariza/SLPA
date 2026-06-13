@@ -37,12 +37,12 @@ Option Explicit
 ' ---------------------------------------------------------------------------------------------------------
 Private name_ As String
 Private description_ As String
-Private type_ As eTypeLiq
-Private refTemperature_ As Double
-Private refPressure_ As Double
-Private typDensity_ As Double
-Private typAPI_ As Double
-Private typViscosity_ As Double
+Private fluidType_ As eTypeLiq
+Private typicalDensity_ As Double
+Private typicalAPI_ As Double
+Private typicalViscosity_ As Double
+Private referenceTemperature_ As Double
+Private referencePressure_ As Double
 
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PÚBLICAS GET/LET CON VALIDACION
@@ -65,11 +65,11 @@ Public Property Let Description(ByVal value As String)
 End Property
 
 Public Property Get FluidType() As eTypeLiq
-  FluidType = type_
+  FluidType = fluidType_
 End Property
 
 Public Property Let FluidType(ByVal value As eTypeLiq)
-  type_ = value
+  fluidType_ = value
 End Property
 
 ''' <summary>
@@ -77,7 +77,7 @@ End Property
 ''' </summary>
 
 Public Property Get TypicalAPI() As Double
-  TypicalAPI = typAPI_
+  TypicalAPI = typicalAPI_
 End Property
 
 Public Property Let TypicalAPI(ByVal value As Double)
@@ -85,9 +85,9 @@ Public Property Let TypicalAPI(ByVal value As Double)
   If value <= -131.5 Then
     Err.Raise vbObjectError + 560, "clsFluid", "La gravedad API debe ser superior a -131.5."
   End If  
-  typAPI_ = value
+  typicalAPI_ = value
   ' Sincronización automática usando mdConversion
-  typDensity_ = mdConversion.CONVDENS(value, A2S, True)
+  typicalDensity_ = mdConversion.CONVDENS(value, A2S, True)
 End Property
 
 ''' <summary>
@@ -95,43 +95,43 @@ End Property
 ''' </summary>
 
 Public Property Get TypicalDensity() As Double
-  TypicalDensity = typDensity_
+  TypicalDensity = typicalDensity_
 End Property
 
 Public Property Let TypicalDensity(ByVal value As Double)
   If value <= 0 Then
     Err.Raise vbObjectError + 561, "clsFluid", "La densidad relativa debe ser mayor a cero."
   End If  
-  typDensity_ = value
+  typicalDensity_ = value
   ' Sincronización automática usando mdConversion
-  typAPI_ = mdConversion.CONVDENS(value, S2A, True)
+  typicalAPI_ = mdConversion.CONVDENS(value, S2A, True)
 End Property
 
 Public Property Get TypicalViscosity() As Double
-  TypicalViscosity = typViscosity_
+  TypicalViscosity = typicalViscosity_
 End Property
 
 Public Property Let TypicalViscosity(ByVal value As Double)
   If value < 0 Then
     Err.Raise vbObjectError + 562, "clsFluid", "La viscosidad no puede ser un valor negativo."
   End If
-  typViscosity_ = value
+  typicalViscosity_ = value
 End Property
 
 Public Property Get ReferenceTemperature() As Double
-  ReferenceTemperature = refTemperature_
+  ReferenceTemperature = referenceTemperature_
 End Property
 
 Public Property Let ReferenceTemperature(ByVal value As Double)
-  refTemperature_ = value
+  referenceTemperature_ = value
 End Property
 
 Public Property Get ReferencePressure() As Double
-  ReferencePressure = refPressure_
+  ReferencePressure = referencePressure_
 End Property
 
 Public Property Let ReferencePressure(ByVal value As Double)
-  refPressure_ = value
+  referencePressure_ = value
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
@@ -141,24 +141,22 @@ End Property
 ''' <summary>
 ''' Imprime en la ventana de Inmediato las propiedades actuales del fluido para depuración.
 ''' </summary>
-
 Public Sub ShowProperties()
   Debug.Print "--- Propiedades del Fluido ---"
   Debug.Print " Nombre: " & name_
   Debug.Print " Tipo API: " & Me.GetFluidTypeName
-  Debug.Print " Gravedad API: " & FormatNumber(typAPI_, 2) & " °API"
-  Debug.Print " Densidad Rel.: " & FormatNumber(typDensity_, 4) & " SGU"
-  Debug.Print " Viscosidad: " & typViscosity_ & " cSt"
-  Debug.Print " Ref. Temp/Pres: " & refTemperature_ & " °F / " & refPressure_ & " psi"
+  Debug.Print " Gravedad API: " & FormatNumber(typicalAPI_, 2) & " °API"
+  Debug.Print " Densidad Rel.: " & FormatNumber(typicalDensity_, 4) & " SGU"
+  Debug.Print " Viscosidad: " & typicalViscosity_ & " cSt"
+  Debug.Print " Ref. Temp/Pres: " & referenceTemperature_ & " °F / " & referencePressure_ & " psi"
   Debug.Print "------------------------------"
 End Sub
 
 ''' <summary>
 ''' Retorna el nombre legible del tipo de líquido basado en el Enum eTypeLiq.
 ''' </summary>
-
 Public Function GetFluidTypeName() As String
-  Select Case type_
+  Select Case fluidType_
     Case CRD: GetFluidTypeName = "Crudo (Crude Oil)"
     Case REF: GetFluidTypeName = "Producto Refinado"
     Case LUB: GetFluidTypeName = "Lubricante"

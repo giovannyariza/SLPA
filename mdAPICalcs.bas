@@ -890,13 +890,13 @@ End Function
 Private Function GetLinearExpansionCoefficient(ByVal Mtrl As eMtrl, ByVal TmpUnits As eTmpUnits) As Double
   Select Case Mtrl
     Case MCrbn ' Acero al Carbono
-      GetLinearExpansionCoefficient = IIf(TmpUnits = F, 0.0000062, 0.0000112)
+      GetLinearExpansionCoefficient = IIf(TmpUnits = F, cCTSH_MCRBN_F, cCTSH_MCRBN_C)
     Case St304 ' Acero Inoxidable 304
-      GetLinearExpansionCoefficient = IIf(TmpUnits = F, 0.0000096, 0.0000173)
+      GetLinearExpansionCoefficient = IIf(TmpUnits = F, cCTSH_ST304_F, cCTSH_ST304_C)
     Case St316 ' Acero Inoxidable 316
-      GetLinearExpansionCoefficient = IIf(TmpUnits = F, 0.00000883, 0.0000159)
+      GetLinearExpansionCoefficient = IIf(TmpUnits = F, cCTSH_ST316_F, cCTSH_ST316_C)
     Case St4PH ' Acero Inoxidable 17-4 PH
-      GetLinearExpansionCoefficient = IIf(TmpUnits = F, 0.000006, 0.0000108)
+      GetLinearExpansionCoefficient = IIf(TmpUnits = F, cCTSH_ST4PH_F, cCTSH_ST4PH_C)
     Case Else
       GetLinearExpansionCoefficient = 0
   End Select
