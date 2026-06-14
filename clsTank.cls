@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+﻿VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -51,7 +51,7 @@ Private baseComponent_ As clsComponent
 
 Private capacity_ As Double
 Private diameter_ As Double
-Private material_ As Long
+Private material_ As eMtrl
 Private hasFloatingRoof_ As Boolean
 Private roofWeight_ As Double
 Private isInsulated_ As Boolean
@@ -88,7 +88,7 @@ End Property
 
 Public Property Let Tag(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 520, "clsTank", "El Tag del tanque no puede estar vacío."
+    Err.Raise eErrors.errTankEmptyTag, "clsTank", "El Tag del tanque no puede estar vacío."
   End If
   baseComponent_.Tag = UCase(Trim(value))
 End Property
@@ -144,7 +144,7 @@ End Property
 
 Public Property Let Capacity(ByVal value As Double)
   If value < 0 Then
-    Err.Raise vbObjectError + 521, "clsTank", "La capacidad nominal no puede ser negativa."
+    Err.Raise eErrors.errTankNegativeCapacity, "clsTank", "La capacidad nominal no puede ser negativa."
   End If
   capacity_ = value
 End Property
@@ -155,16 +155,16 @@ End Property
 
 Public Property Let Diameter(ByVal value As Double)
   If value < 0 Then
-    Err.Raise vbObjectError + 522, "clsTank", "El diámetro no puede ser negativo."
+    Err.Raise eErrors.errTankNegativeDiameter, "clsTank", "El diámetro no puede ser negativo."
   End If
   diameter_ = value
 End Property
 
-Public Property Get Material() As Long
+Public Property Get Material() As eMtrl
   Material = material_
 End Property
 
-Public Property Let Material(ByVal value As Long)
+Public Property Let Material(ByVal value As eMtrl)
   material_ = value
 End Property
 
@@ -182,7 +182,7 @@ End Property
 
 Public Property Let RoofWeight(ByVal value As Double)
   If value < 0 Then
-    Err.Raise vbObjectError + 523, "clsTank", "El peso del techo no puede ser negativo."
+    Err.Raise eErrors.errTankNegativeRoofWeight, "clsTank", "El peso del techo no puede ser negativo."
   End If
   roofWeight_ = value
 End Property

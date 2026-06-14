@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+﻿VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -64,7 +64,7 @@ End Property
 
 Public Property Let Tag(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 550, "clsLine", "El Tag de la línea no puede estar vacío."
+    Err.Raise eErrors.errLineEmptyTag, "clsLine", "El Tag de la línea no puede estar vacío."
   End If
   baseComponent_.Tag = UCase(Trim(value))
 End Property
@@ -87,7 +87,7 @@ End Property
 
 Public Property Let System(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 551, "clsLine", "El Sistema de la línea no puede estar vacío."
+    Err.Raise eErrors.errLineEmptySystem, "clsLine", "El Sistema de la línea no puede estar vacío."
   End If
   baseComponent_.System = value
 End Property
@@ -98,7 +98,7 @@ End Property
 
 Public Property Let Service(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 552, "clsLine", "El Servicio de la línea no puede estar vacío."
+    Err.Raise eErrors.errLineEmptyService, "clsLine", "El Servicio de la línea no puede estar vacío."
   End If
   baseComponent_.Service = value
 End Property
@@ -109,7 +109,7 @@ End Property
 
 Public Property Let Status(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 553, "clsLine", "El Estado de la línea no puede estar vacío."
+    Err.Raise eErrors.errLineEmptyStatus, "clsLine", "El Estado de la línea no puede estar vacío."
   End If
   baseComponent_.Status = value
 End Property
@@ -132,7 +132,7 @@ End Property
 
 Public Property Let Length(ByVal value As Double)
   If value <= 0 Then
-    Err.Raise vbObjectError + 554, "clsLine", "La longitud de la línea debe ser mayor a cero."
+    Err.Raise eErrors.errLineInvalidLength, "clsLine", "La longitud de la línea debe ser mayor a cero."
   End If
   length_ = value
 End Property
@@ -143,7 +143,7 @@ End Property
 
 Public Property Let Diameter(ByVal value As Double)
   If value <= 0 Then
-    Err.Raise vbObjectError + 555, "clsLine", "El diámetro de la línea debe ser mayor a cero."
+    Err.Raise eErrors.errLineInvalidDiameter, "clsLine", "El diámetro de la línea debe ser mayor a cero."
   End If
   diameter_ = value
 End Property

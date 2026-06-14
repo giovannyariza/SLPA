@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+﻿VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -83,7 +83,7 @@ End Property
 Public Property Let TypicalAPI(ByVal value As Double)
   ' Validación: El API no puede ser menor a -131.5 (límite matemático de la fórmula)
   If value <= -131.5 Then
-    Err.Raise vbObjectError + 560, "clsFluid", "La gravedad API debe ser superior a -131.5."
+    Err.Raise eErrors.errFluidInvalidAPI, "clsFluid", "La gravedad API debe ser superior a -131.5."
   End If  
   typicalAPI_ = value
   ' Sincronización automática usando mdConversion
@@ -100,7 +100,7 @@ End Property
 
 Public Property Let TypicalDensity(ByVal value As Double)
   If value <= 0 Then
-    Err.Raise vbObjectError + 561, "clsFluid", "La densidad relativa debe ser mayor a cero."
+    Err.Raise eErrors.errFluidInvalidDensity, "clsFluid", "La densidad relativa debe ser mayor a cero."
   End If  
   typicalDensity_ = value
   ' Sincronización automática usando mdConversion
@@ -113,7 +113,7 @@ End Property
 
 Public Property Let TypicalViscosity(ByVal value As Double)
   If value < 0 Then
-    Err.Raise vbObjectError + 562, "clsFluid", "La viscosidad no puede ser un valor negativo."
+    Err.Raise eErrors.errFluidNegativeViscosity, "clsFluid", "La viscosidad no puede ser un valor negativo."
   End If
   typicalViscosity_ = value
 End Property

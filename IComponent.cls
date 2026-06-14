@@ -11,25 +11,25 @@ Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
 ' INTERFACE: IComponent
-' DESCRIPCIÓN:
-'   Define el contrato para todos los componentes de una instalación.
+' DESCRIPCIï¿½N:
+'   Define el contrato para todos los componentes de una instalaciï¿½n.
 '   Las clases como clsTank, clsWell, clsLine pueden implementar esta interfaz
-'   para permitir que sean tratadas de forma polimórfica a través de una
+'   para permitir que sean tratadas de forma polimï¿½rfica a travï¿½s de una
 '   variable declarada As IComponent.
 '
 ' MIEMBROS:
-'   - Tag (String): Identificador único.
-'   - Description (String): Descripción.
-'   - ComponentType (String): Tipo específico (ej: "Tanque", "Pozo").
+'   - Tag (String): Identificador ï¿½nico.
+'   - Description (String): Descripciï¿½n.
+'   - ComponentType (String): Tipo especï¿½fico (ej: "Tanque", "Pozo").
 '   - System (String): Sistema dentro del proceso al que pertenece.
-'   - Service (String): Función en el proceso.
+'   - Service (String): Funciï¿½n en el proceso.
 '   - Status (String): Estado operativo.
-'   - Station (clsStation): Referencia a la estación a la que pertenece el componente.
-'   - ShowProperties: Método para mostrar información.
+'   - Station (clsStation): Referencia a la estaciï¿½n a la que pertenece el componente.
+'   - ShowProperties: Mï¿½todo para mostrar informaciï¿½n.
 ' ---------------------------------------------------------------------------------------------------------
 
 ' ---------------------------------------------------------------------------------------------------------
-' PROPIEDADES PÚBLICAS GET/LET
+' PROPIEDADES Pï¿½BLICAS GET/LET
 ' ---------------------------------------------------------------------------------------------------------
 Public Property Get Tag() As String
 End Property
@@ -62,13 +62,13 @@ Public Property Let Status(ByVal value As String)
 End Property
 
 Public Property Get Station() As clsStation
-' Referencia a la estación a la que pertenece el componente
+' Referencia a la estaciï¿½n a la que pertenece el componente
 End Property
 Public Property Set Station(ByVal value As clsStation)
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
-' MÉTODOS PÚBLICOS
+' Mï¿½TODOS Pï¿½BLICOS
 ' ---------------------------------------------------------------------------------------------------------
 Public Sub ShowProperties()
 End Sub

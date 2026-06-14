@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+﻿VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -65,7 +65,7 @@ End Property
 
 Public Property Let Tag(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 513, "clsStation", "El Tag no puede estar vacío."
+    Err.Raise eErrors.errStationEmptyTag, "clsStation", "El Tag no puede estar vacío."
   End If
   tag_ = value
 End Property
@@ -76,7 +76,7 @@ End Property
 
 Public Property Let Name(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 514, "clsStation", "El Nombre no puede estar vacío."
+    Err.Raise eErrors.errStationEmptyName, "clsStation", "El Nombre no puede estar vacío."
   End If
   name_ = value
 End Property
@@ -95,7 +95,7 @@ End Property
 
 Public Property Let Status(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 515, "clsStation", "El Estado no puede estar vacío."
+    Err.Raise eErrors.errStationEmptyStatus, "clsStation", "El Estado no puede estar vacío."
   End If
   status_ = value
 End Property
@@ -122,7 +122,7 @@ Public Sub AddComponent(ByVal Component As IComponent)
   On Error GoTo ErrHandler
   
   If Component Is Nothing Then
-    Err.Raise vbObjectError + 516, "clsStation", "El componente a agregar es nulo (Nothing)."
+    Err.Raise eErrors.errStationNullComponent, "clsStation", "El componente a agregar es nulo (Nothing)."
   End If
 
   ' Intentar agregar a la coleccion usando el Tag como clave unica

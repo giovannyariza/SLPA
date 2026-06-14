@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+﻿VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -62,7 +62,7 @@ End Property
 
 Public Property Let Tag(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 530, "clsWell", "El Tag del pozo no puede estar vacío."
+    Err.Raise eErrors.errWellEmptyTag, "clsWell", "El Tag del pozo no puede estar vacío."
   End If
   baseComponent_.Tag = UCase(Trim(value))
 End Property
@@ -85,7 +85,7 @@ End Property
 
 Public Property Let System(ByVal value As String)
   If Trim(value) = "" Then 
-    Err.Raise vbObjectError + 531, "clsWell", "El Sistema del pozo no puede estar vacío."
+    Err.Raise eErrors.errWellEmptySystem, "clsWell", "El Sistema del pozo no puede estar vacío."
   End If
   baseComponent_.System = value
 End Property
@@ -96,7 +96,7 @@ End Property
 
 Public Property Let Service(ByVal value As String)
   If Trim(value) = "" Then 
-    Err.Raise vbObjectError + 532, "clsWell", "El Servicio del pozo no puede estar vacío."
+    Err.Raise eErrors.errWellEmptyService, "clsWell", "El Servicio del pozo no puede estar vacío."
   End If
   baseComponent_.Service = value
 End Property
@@ -107,7 +107,7 @@ End Property
 
 Public Property Let Status(ByVal value As String)
   If Trim(value) = "" Then 
-    Err.Raise vbObjectError + 533, "clsWell", "El Estado del pozo no puede estar vacío."
+    Err.Raise eErrors.errWellEmptyStatus, "clsWell", "El Estado del pozo no puede estar vacío."
   End If
   baseComponent_.Status = value
 End Property
@@ -130,7 +130,7 @@ End Property
 
 Public Property Let Depth(ByVal value As Double)
   If value <= 0 Then 
-    Err.Raise vbObjectError + 534, "clsWell", "La profundidad del pozo debe ser mayor a cero."
+    Err.Raise eErrors.errWellInvalidDepth, "clsWell", "La profundidad del pozo debe ser mayor a cero."
   End If
   depth_ = value
 End Property

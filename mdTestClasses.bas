@@ -1,4 +1,4 @@
-Attribute VB_Name = "mdTestClasses"
+﻿Attribute VB_Name = "mdTestClasses"
 Option Explicit
 
 ''' <summary>

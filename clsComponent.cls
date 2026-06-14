@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+ï»¿VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -11,22 +11,22 @@ Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
 ' CLASE: clsComponent
-' DESCRIPCIÓN:
+' DESCRIPCIï¿½N:
 ' Representa un componente de un sistema.
 '
 ' DEPENDENCIAS:
-'   - IComponent.cls: Para la colección de componentes (permite almacenar diferentes tipos).
+'   - IComponent.cls: Para la colecciï¿½n de componentes (permite almacenar diferentes tipos).
 '
 ' PROPIEDADES PRINCIPALES:
-'   - Tag (String): Identificador único del componente. (ej: ATK-7213)
-'   - Description (String): Descripción detallada del componente.
-'   - ComponentType (String): Tipo de componente (ej: Tanque, Pozo, Línea).
+'   - Tag (String): Identificador ï¿½nico del componente. (ej: ATK-7213)
+'   - Description (String): Descripciï¿½n detallada del componente.
+'   - ComponentType (String): Tipo de componente (ej: Tanque, Pozo, Lï¿½nea).
 '   - System (String): Sistema al que pertenece el componente (ej: Almacenamiento, Tratamiento)
-'   - Service (String): Función o servicio dentro del proceso (ej: Surgencia, Fiscalización, Recibo, Despacho)
+'   - Service (String): Funciï¿½n o servicio dentro del proceso (ej: Surgencia, Fiscalizaciï¿½n, Recibo, Despacho)
 '   - Status (String): Estado actual del componente (ej: OP, OF, MT, MC, etc)
-'   - Station (clsStation): Estación a la cual pertenece.
+'   - Station (clsStation): Estaciï¿½n a la cual pertenece.
 '
-' MÉTODOS:
+' Mï¿½TODOS:
 '   - ShowProperties: Muestra las propiedades del componente.
 '
 Implements IComponent
@@ -40,10 +40,10 @@ Private type_ As String
 Private system_ As String
 Private service_ As String
 Private status_ As String
-Private station_ As clsStation ' Referencia a la estación padre
+Private station_ As clsStation ' Referencia a la estaciï¿½n padre
 
 ' ---------------------------------------------------------------------------------------------------------
-' PROPIEDADES PÚBLICAS GET/LET CON VALIDACIÓN
+' PROPIEDADES Pï¿½BLICAS GET/LET CON VALIDACIï¿½N
 ' ---------------------------------------------------------------------------------------------------------
 Public Property Get Tag() As String
   Tag = tag_
@@ -51,7 +51,7 @@ End Property
 
 Public Property Let Tag(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 500, "clsComponent", "El Tag del componente no puede estar vacío."
+    Err.Raise eErrors.errComponentEmptyTag, "clsComponent", "El Tag del componente no puede estar vacï¿½o."
   End If
   tag_ = UCase(Trim(value))
 End Property
@@ -70,7 +70,7 @@ End Property
 
 Public Property Let ComponentType(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 501, "clsComponent", "El Tipo de Componente no puede estar vacío."
+    Err.Raise eErrors.errComponentEmptyType, "clsComponent", "El Tipo de Componente no puede estar vacï¿½o."
   End If
   type_ = value
 End Property
@@ -81,7 +81,7 @@ End Property
 
 Public Property Let System(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 502, "clsComponent", "El Sistema no puede estar vacío."
+    Err.Raise eErrors.errComponentEmptySystem, "clsComponent", "El Sistema no puede estar vacï¿½o."
   End If
   system_ = value
 End Property
@@ -92,7 +92,7 @@ End Property
 
 Public Property Let Service(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 503, "clsComponent", "El Servicio no puede estar vacío."
+    Err.Raise eErrors.errComponentEmptyService, "clsComponent", "El Servicio no puede estar vacï¿½o."
   End If
   service_ = value
 End Property
@@ -103,13 +103,13 @@ End Property
 
 Public Property Let Status(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise vbObjectError + 504, "clsComponent", "El Estado no puede estar vacío."
+    Err.Raise eErrors.errComponentEmptyStatus, "clsComponent", "El Estado no puede estar vacï¿½o."
   End If
   status_ = value
 End Property
 
 Public Property Get Station() As clsStation
-' Referencia a la estación (vínculo bidireccional)
+' Referencia a la estaciï¿½n (vï¿½nculo bidireccional)
   Set Station = station_
 End Property
 
@@ -118,23 +118,23 @@ Public Property Set Station(ByVal value As clsStation)
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
-' MÉTODOS PÚBLICOS
+' Mï¿½TODOS Pï¿½BLICOS
 ' ---------------------------------------------------------------------------------------------------------
 Public Sub ShowProperties()
-' Método para mostrar propiedades del componente (útil para depuración)
+' Mï¿½todo para mostrar propiedades del componente (ï¿½til para depuraciï¿½n)
   Debug.Print "Tag del Componente: " & tag_
-  Debug.Print "Descripción Detallada: " & description_
+  Debug.Print "Descripciï¿½n Detallada: " & description_
   Debug.Print "Tipo de Componente: " & type_
   Debug.Print "Sistema al que pertenece: " & system_
-  Debug.Print "Función o Servicio: " & service_
+  Debug.Print "Funciï¿½n o Servicio: " & service_
   Debug.Print "Estado del Componente: " & status_
   If Not station_ Is Nothing Then
-    Debug.Print "Pertenece a Estación: " & station_.Tag
+    Debug.Print "Pertenece a Estaciï¿½n: " & station_.Tag
   End If
 End Sub
 
 ' ---------------------------------------------------------------------------------------------------------
-' IMPLEMENTACIÓN DE LA INTERFAZ ICOMPONENT
+' IMPLEMENTACIï¿½N DE LA INTERFAZ ICOMPONENT
 ' ---------------------------------------------------------------------------------------------------------
 
 Private Property Get IComponent_Tag() As String

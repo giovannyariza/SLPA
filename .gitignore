@@ -2,6 +2,8 @@
 # Office temporary files
 ~$*
 
+/.qwen
+
 # Access database lock files (laccdb, ldb)
 *.[lL][aA][cC][cC][dD][bB]
 *.[lL][dD][bB]
@@ -10,13 +12,13 @@
 # If you want to exclude Office files from your repo, uncomment the corresponding file extensions.
 
 # Excel (xls, xlsb, xlsm, xlt, xltm, xla, xlam)
-#*.[xX][lL][sS]
-#*.[xX][lL][sS][bB]
-#*.[xX][lL][sS][mM]
-#*.[xX][lL][tT]
-#*.[xX][lL][tT][mM]
-#*.[xX][lL][aA]
-#*.[xX][lL][aA][mM]
+*.[xX][lL][sS]
+*.[xX][lL][sS][bB]
+*.[xX][lL][sS][mM]
+*.[xX][lL][tT]
+*.[xX][lL][tT][mM]
+*.[xX][lL][aA]
+*.[xX][lL][aA][mM]
 
 # Word (doc, docm, dot, dotm)
 #*.[dD][oO][cC]

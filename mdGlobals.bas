@@ -4,8 +4,8 @@ Option Explicit
 ' ---------------------------------------------------------------------------------------------------------
 ' MÓDULO CENTRAL: mdGlobals
 ' DESCRIPCIÓN:
-'   Este módulo contiene definiciones de enumeraciones (Enums) y constantes globales utilizadas en todo el 
-'   proyecto, particularmente en los cálculos basados en las normas API MPMS. Centralizar estas 
+'   Este módulo contiene definiciones de enumeraciones (Enums) y constantes globales utilizadas en todo el
+'   proyecto, particularmente en los cálculos basados en las normas API MPMS. Centralizar estas
 '   definiciones ayuda a mantener la coherencia y facilitar su gestión.
 '
 ' DEPENDENCIAS:
@@ -102,6 +102,63 @@ Public Enum eMtrl
   St4PH = 4 ' Stainless Steel 4PH
 End Enum
 
+' ---------------------------------------------------------------------------------------------------------
+' ENUMERACIONES DE ESTADOS OPERATIVOS DE COMPONENTES
+' ---------------------------------------------------------------------------------------------------------
+
+' Estados operativos válidos para estaciones, tanques, pozos y líneas
+Public Enum eComponentStatus
+  OP = 1 ' Operativo
+  OF = 2 ' Operativo con Fallas
+  MT = 3 ' Mantenimiento
+  MC = 4 ' Fuera de Servicio Mecánico
+  FS = 5 ' Fuera de Servicio
+End Enum
+
+' ---------------------------------------------------------------------------------------------------------
+' ENUMERACIÓN CENTRALIZADA DE CÓDIGOS DE ERROR
+' ---------------------------------------------------------------------------------------------------------
+
+' Códigos de error para Err.Raise en todas las clases del proyecto.
+' Elimina la dependencia de números mágicos (vbObjectError + 500, etc.)
+Public Enum eErrors
+  ' clsComponent
+  errComponentEmptyTag = vbObjectError + 500
+  errComponentEmptyType = vbObjectError + 501
+  errComponentEmptySystem = vbObjectError + 502
+  errComponentEmptyService = vbObjectError + 503
+  errComponentEmptyStatus = vbObjectError + 504
+  ' clsStation
+  errStationEmptyTag = vbObjectError + 513
+  errStationEmptyName = vbObjectError + 514
+  errStationEmptyStatus = vbObjectError + 515
+  errStationNullComponent = vbObjectError + 516
+  ' clsTank
+  errTankEmptyTag = vbObjectError + 520
+  errTankNegativeCapacity = vbObjectError + 521
+  errTankNegativeDiameter = vbObjectError + 522
+  errTankNegativeRoofWeight = vbObjectError + 523
+  ' clsWell
+  errWellEmptyTag = vbObjectError + 530
+  errWellEmptySystem = vbObjectError + 531
+  errWellEmptyService = vbObjectError + 532
+  errWellEmptyStatus = vbObjectError + 533
+  errWellInvalidDepth = vbObjectError + 534
+  ' clsLine
+  errLineEmptyTag = vbObjectError + 550
+  errLineEmptySystem = vbObjectError + 551
+  errLineEmptyService = vbObjectError + 552
+  errLineEmptyStatus = vbObjectError + 553
+  errLineInvalidLength = vbObjectError + 554
+  errLineInvalidDiameter = vbObjectError + 555
+  ' clsFluid
+  errFluidInvalidAPI = vbObjectError + 560
+  errFluidInvalidDensity = vbObjectError + 561
+  errFluidNegativeViscosity = vbObjectError + 562
+  ' mdStationService
+  errServiceTableNotFound = vbObjectError + 1000
+End Enum
+
 ' -------------------------------------------------------------------------------------------------
 ' VARIABLES PUBLICAS
 ' -------------------------------------------------------------------------------------------------
@@ -173,7 +230,7 @@ Public Const cFP_D As Integer = 2326
 Public Const cFPDERIVATIVE_A As Double = 7.9392
 Public Const cFPDERIVATIVE_B As Double = 0.02326
 
-Public Const cPRESS_SCALING_API As Integer = 0.00001
+Public Const cPRESS_SCALING_API As Double = 0.00001
 
 ' Coeficientes Expansión Térmica del Casco
 Public Const cCTSH_MCRBN_F As Double = 0.0000062
@@ -190,6 +247,17 @@ Public Const cTAYLOR As Double = 0.8
 
 Public Const cEPSILON As Double = 0.000001
 
+' Tolerancia para redondeo bancario (Banker's Rounding) en ROUNDAPI
+Public Const cEPSILON_ROUNDING As Double = 0.0000000001
+
+' Coeficientes de corrección del hidrómetro por expansión del vidrio (API MPMS Cap. 9.3)
+' Escala Fahrenheit
+Public Const cHYCF_A As Double = 0.00001278
+Public Const cHYCF_B As Double = 0.0000000062
+' Escala Celsius
+Public Const cHYCC_C As Double = 0.000233
+Public Const cHYCC_D As Double = 0.00000023
+
 ' Propiedades de Materiales (API 650 / 12.1.1)
 Public Const cYOUNG_MODULUS_STEEL_IMP As Double = 30000000
 Public Const cYOUNG_MODULUS_STEEL_MET As Double = 206842718900
@@ -205,7 +273,6 @@ Public Const cAPI60_RangeCrudeRefined_MAX As Double = 130
 Public Const cAPI60_RangeLubricant_MIN As Double = 0
 Public Const cAPI60_RangeLubricant_MAX As Double = 40
 
-'
 Public Const cShrinkageFactorCU_Const As Double = 4.86E-8
 Public Const cShrinkageFactorSI_Const As Double = 2.69E-04
 Public Const cShrinkageFactor_Exp1 As Double = 0.819
@@ -231,10 +298,3 @@ Public Const cMT2CM As Double = 100
 Public Const cMT2FT As Double = 3.280839895
 Public Const cMT2IN As Double = 39.37007874
 ' -------------------------------------------------------------------------------------------------
-' Rango de Gravedad API a 60°F para Crudos y Productos Refinados
-' Public Const cAPI60_RangeCrudeRefined_Min As Double = 0
-' Public Const cAPI60_RangeCrudeRefined_Max As Double = 130
-' -------------------------------------------------------------------------------------------------
-' Rango de Gravedad API a 60°F para Aceites Lubricantes
-' Public Const cAPI60_RangeLubricant_Min As Double = 0
-' Public Const cAPI60_RangeLubricant_Max As Double = 40

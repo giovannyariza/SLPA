@@ -1,4 +1,4 @@
-Attribute VB_Name = "mdAPICalcs"
+﻿Attribute VB_Name = "mdAPICalcs"
 Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
@@ -55,10 +55,6 @@ Public Function HYC(ByVal TmpObs As Double, Optional TmpUnits As eTmpUnits = F) 
   If Not mdHelpers.IsFinite(TmpObs) Then GoTo ErrHandler
 
   ' Coeficientes HYC
-  Const cHYCF_A As Double = 0.00001278
-  Const cHYCF_B As Double = 0.0000000062 ' Escala Fahrenheit
-  Const cHYCC_C As Double = 0.000233
-  Const cHYCC_D As Double = 0.00000023 ' Escala Celsius
 
   Dim tempObsF As Double ' Temperatura observada convertida a Fahrenheit
   Dim tempObsC As Double ' Temperatura observada convertida a Celsius
@@ -161,10 +157,10 @@ Public Function ALPHA60MED(ByVal DensRange As Variant, ByVal TempRange As Varian
   
   ' Convertir entradas a arreglos de Double (Handles Ranges and Arrays)
   Dim ArrDens() As Double
-  ArrDens = ConvertToDoubleArray(DensRange)
+  ArrDens = mdHelpers.ConvertToDoubleArray(DensRange)
 
   Dim ArrTmps() As Double
-  ArrTmps = ConvertToDoubleArray(TempRange)
+  ArrTmps = mdHelpers.ConvertToDoubleArray(TempRange)
   
   ' Validar que ambos arreglos tengan la misma dimensión y mínimo 10 datos
   Dim n As Long
@@ -215,36 +211,6 @@ ErrHandler:
   ALPHA60MED = 0
 End Function
 
-''' <summary>
-''' Convierte un Variant (Rango de Excel o Array) en un arreglo unidimensional de Doubles base 1.
-''' </summary>
-Private Function ConvertToDoubleArray(ByVal InputVar As Variant) As Double()
-  Dim res() As Double
-  Dim cell As Variant
-  Dim count As Long: count = 0
-  
-  ' Determinar tamaño
-  If TypeName(InputVar) = "Range" Or IsArray(InputVar) Then
-    ' Redimensionar temporalmente
-    ReDim res(1 To 10000) ' Límite arbitrario para baches de fiscalización
-    
-    For Each cell In InputVar
-      If IsNumeric(cell) And Not IsEmpty(cell) Then
-        count = count + 1
-        res(count) = CDbl(cell)
-      End If
-    Next cell
-    
-    ' Ajustar al tamaño real
-    If count > 0 Then
-      ReDim Preserve res(1 To count)
-    Else
-      ReDim res(0 To 0)
-    End If
-  End If
-  
-  ConvertToDoubleArray = res
-End Function
 
 ''' <summary>
 ''' Calcula el Coeficiente de Expansión Térmica a 60°F (Alfa60) y la Densidad en escala IPTS-68.
@@ -262,7 +228,7 @@ Public Function ALPHA60(ByVal API60 As Double, Optional TypeLiq As eTypeLiq = CR
   If Not mdHelpers.IsFinite(API60) Then GoTo ErrHandler
 
   ' Validación de Integridad
-  If API60 <= -cAPI_B Then GoTo ErrHandler
+  If Not mdHelpers.IsValidAPI(API60, TypeLiq, CheckNormative:=False) Then GoTo ErrHandler
 
   Dim Rho60 As Double
   ' Convertir la Gravedad API60 (ITS-90) en Kg/m³ relativo al agua
@@ -347,7 +313,7 @@ Public Function FP(ByVal API60 As Double, ByVal TempF As Double, Optional TypeLi
   If Not mdHelpers.IsFinite(API60) Or Not mdHelpers.IsFinite(TempF) Then GoTo ErrHandler
 
   ' Validaciones de Rangos Físicos (Límites estándar API 11.1)
-  If API60 <= -cAPI_B Then GoTo ErrHandler
+  If Not mdHelpers.IsValidAPI(API60, TypeLiq, CheckNormative:=False) Then GoTo ErrHandler
 
   ' Temperatura observada convertida a IPTS-68 Celsius
   Dim TempC68 As Double
@@ -407,7 +373,7 @@ Public Function CTL(ByVal API60 As Double, ByVal TempF As Double, Optional TypeL
   If Not mdHelpers.IsFinite(API60) Or Not mdHelpers.IsFinite(TempF) Then GoTo ErrHandler
 
   ' Validaciones de Rangos Físicos (Límites estándar API 11.1)
-  If API60 <= -cAPI_B Or TempF < cTEMPVALIDRANGE_MIN Or TempF > cTEMPVALIDRANGE_MAX Then GoTo ErrHandler
+  If Not mdHelpers.IsValidAPI(API60, TypeLiq, CheckNormative:=False) Or Not mdHelpers.IsValidTemperature(TempF) Then GoTo ErrHandler
 
   Dim Alfa60 As Double      
   ' Coeficiente de expansión térmica a 60F (en 1/°F)
@@ -470,7 +436,7 @@ Public Function CPL(ByVal API60 As Double, ByVal TempF As Double, ByVal Pres As 
      Not mdHelpers.IsFinite(Pres) Or Not mdHelpers.IsFinite(Pe) Then GoTo ErrHandler
   
   ' Validaciones de Rangos Físicos API 11.1
-  If Pres < Pe Or Pres > cPRESSVALIDRANGE_MAX Or API60 <= -cAPI_B Then GoTo ErrHandler
+  If Pres < Pe Or Pres > cPRESSVALIDRANGE_MAX Or Not mdHelpers.IsValidAPI(API60, TypeLiq, CheckNormative:=False) Then GoTo ErrHandler
 
   Dim Fcp As Double
   ' Hallar el Factor de Compresibilidad Escalado (FP)
@@ -517,7 +483,7 @@ End Function
 ''' <param name="Pe">Presión de equilibrio en PSI. Por defecto 0.</param>
 ''' <returns>Gravedad API a 60°F. Retorna 0 si no hay convergencia o error.</returns>
 
-Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLiq As eTypeLiq = CRD, Optional ByVal PresObs As Double = 0, Optional ByVal Pe As Double = 0) As Double
+Public Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional TypeLiq As eTypeLiq = CRD, Optional ByVal PresObs As Double = 0, Optional ByVal Pe As Double = 0) As Double
   On Error GoTo ErrHandler ' Manejo de errores
 
   ' Validaciones de Integridad y Finitud (mdHelpers)
@@ -671,7 +637,7 @@ Public Function APIOBS(ByVal API60 As Double, ByVal TempF As Double, Optional Ty
   If Not mdHelpers.IsFinite(API60) Or Not mdHelpers.IsFinite(TempF) Then GoTo ErrHandler
   
   ' Límites físicos de la escala API
-  If API60 <= -cAPI_B Then GoTo ErrHandler
+  If Not mdHelpers.IsValidAPI(API60, TypeLiq, CheckNormative:=False) Then GoTo ErrHandler
   
   Dim Rho60 As Double
   ' Convertir API60 (BASE) a Densidad (ITS-90) en Kg/m³ a 60F
@@ -742,7 +708,7 @@ Public Function ROUNDAPI(ByVal Val As Double, ByVal PosDec As Long, Optional ByV
   ' Obtener la parte decimal del valor normalizado
   DecPart = NormVal - IntPart
   
-  Const cEPSILON As Double = 0.0000000001 ' Pequeña tolerancia para comparación de punto flotante
+  ' Usar constante global cEPSILON_ROUNDING de mdGlobals ' Pequeña tolerancia para comparación de punto flotante
   Dim ValRounded as Double ' Valor truncado para el redondeo especial de 0.5  
   
   ' Truncar el valor normalizado para el redondeo especial de 0.5 Regla API:
