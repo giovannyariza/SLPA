@@ -11,44 +11,42 @@ Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
 ' CLASE: clsStation
-' DESCRIPCION:
-' Representa una Estacion como un punto central en la instalacion.
-' Contiene una coleccion de componentes (tanques, pozos, lineas, etc.) que pertenecen a esa estacion.
+' DESCRIPCIÓN:
+' Representa una Estación como un punto central en la instalación.
+' Contiene una colección de componentes (tanques, pozos, líneas, etc.) que pertenecen a esa estación.
 '
 ' DEPENDENCIAS:
-'   - IComponent.cls: Para la coleccion de componentes (permite almacenar diferentes tipos).
+'   - IComponent.cls: Para la colección de componentes (permite almacenar diferentes tipos).
 '
 ' PROPIEDADES PRINCIPALES:
-'   - Tag (String): Identificador unico de la estacion. (ej: EC2, EC3, EA1)
-'   - Name (String): Nombre de la estacion (puede ser mas descriptivo que el Tag).
-'   - Description (String): Descripcion detallada de la estacion.
-'   - Status (String): Estado operativo actual de la estacion (ej: OP, FS, MT, etc).
-'   - Location (String): Informacion de ubicacion geografica.
-'   - Components (Collection): Coleccion de componentes (objetos que implementan IComponent) en esta estacion. (Solo lectura)
+'   - Tag (String): Identificador único de la estación. (ej: EC2, EC3, EA1)
+'   - Name (String): Nombre de la estación (puede ser mas descriptivo que el Tag).
+'   - Description (String): Descripción detallada de la estación.
+'   - Status (String): Estado operativo actual de la estación (ej: OP, FS, MT, etc).
+'   - Location (String): Información de ubicación geográfica.
+'   - Components (Collection): Colección de componentes (objetos que implementan IComponent) en esta estación. (Solo lectura)
 '
 ' METODOS:
-'   - AddComponent (Component As IComponent): Agrega un componente a la estacion.
-'   - RemoveComponent (Component As IComponent): Remueve un componente de la estacion.
+'   - AddComponent (Component As IComponent): Agrega un componente a la estación.
+'   - RemoveComponent (Component As IComponent): Remueve un componente de la estación.
 '   - FindComponentByTag (Tag As String): Busca un componente por su Tag.
-'   - ShowProperties: Muestra las propiedades de la Estacion.
+'   - ShowProperties: Muestra las propiedades de la Estación.
 '
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PRIVADAS (BACKING FIELDS)
 ' ---------------------------------------------------------------------------------------------------------
-
 Private tag_ As String
 Private name_ As String
 Private description_ As String
 Private status_ As String
 Private location_ As String
-Private components_ As Collection ' Coleccion para almacenar los componentes
+Private components_ As Collection ' Colección para almacenar los componentes
 
 ' ---------------------------------------------------------------------------------------------------------
-' METODOS DE INSTANCIA DE CLASE
+' MÉTODOS DE INSTANCIA DE CLASE
 ' ---------------------------------------------------------------------------------------------------------
-
 Private Sub Class_Initialize()
-  Set components_ = New Collection ' Inicializar la coleccion al crear la clase
+  Set components_ = New Collection ' Inicializar la colección al crear la clase
 End Sub
 
 Private Sub Class_Terminate()
@@ -56,9 +54,8 @@ Private Sub Class_Terminate()
 End Sub
 
 ' ---------------------------------------------------------------------------------------------------------
-' PROPIEDADES PUBLICAS GET/LET CON VALIDACION
+' PROPIEDADES PÚBLICAS GET/LET CON VALIDACIÓN
 ' ---------------------------------------------------------------------------------------------------------
-
 Public Property Get Tag() As String
   Tag = tag_
 End Property
@@ -109,27 +106,38 @@ Public Property Let Location(ByVal value As String)
 End Property
 
 Public Property Get Components() As Collection
-  ' Acceso a la colección de componentes (Solo lectura)
+  ' Acceso a la colección de componentes (Sólo lectura)
   Set Components = components_
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
-' METODOS PUBLICOS
+' MÉTODOS PÚBLICOS
 ' ---------------------------------------------------------------------------------------------------------
+Public Sub ShowProperties()
+' Metodo para mostrar propiedades de la estación (útil para depuracion)
+  Debug.Print "--- Propiedades de la Estación ---"
+  Debug.Print " Tag: " & Me.Tag
+  Debug.Print " Nombre: " & Me.Name
+  Debug.Print " Descripción: " & Me.Description
+  Debug.Print " Estado Operativo: " & Me.Status
+  Debug.Print " Ubicación: " & Me.Location
+  Debug.Print " Componentes: " & Me.Components.Count
+  Debug.Print "----------------------------------"
+End Sub
 
 Public Sub AddComponent(ByVal Component As IComponent)
-' Metodo que agrega un componente a la coleccion de la estacion y lo vincula bidireccionalmente.
+' Metodo que agrega un componente a la colección de la estación y lo vincula bidireccionalmente.
   On Error GoTo ErrHandler
   
   If Component Is Nothing Then
     Err.Raise eErrors.errStationNullComponent, "clsStation", "El componente a agregar es nulo (Nothing)."
   End If
 
-  ' Intentar agregar a la coleccion usando el Tag como clave unica
-  ' Si el Tag ya existe, generara el error 457
+  ' Intentar agregar a la colección usando el Tag como clave única
+  ' Si el Tag ya existe, generará el error 457
   components_.Add Component, Component.Tag
   
-  ' Establecer la referencia de la estacion en el componente
+  ' Establecer la referencia de la estación en el componente
   On Error Resume Next
   Set Component.Station = Me
   On Error GoTo ErrHandler
@@ -145,16 +153,16 @@ ErrHandler:
 End Sub
 
 Public Sub RemoveComponent(ByVal Identifier As Variant)
-' Remueve un componente de la coleccion de la estacion por su Tag. Desasocia la estacion del componente.
+' Remueve un componente de la colección de la estación por su Tag. Desasocia la estación del componente.
   On Error GoTo ErrHandler
   
-  ' Buscar el componente para desvincular la estacion antes de borrarlo
+  ' Buscar el componente para desvincular la estación antes de borrarlo
   Dim comp As IComponent
   Set comp = FindComponentByTag(CStr(Identifier))
   
   If Not comp Is Nothing Then
     On Error Resume Next
-    Set comp.Station = Nothing ' Quitar v�nculo
+    Set comp.Station = Nothing ' Quitar vínculo
     On Error GoTo ErrHandler
     
     components_.Remove Identifier
@@ -168,22 +176,8 @@ ErrHandler:
   Debug.Print "Error en RemoveComponent: " & Err.Description
 End Sub
 
-''' <summary>
-''' Busca y recupera un componente especifico dentro de la coleccion interna de la estacion
-''' utilizando su identificador unico (Tag) como clave de acceso.
-''' </summary>
-''' <param name="Tag">Cadena de caracteres que representa el identificador unico (Key) del componente a buscar (ej: "ATK-7212", "LIN-4022").</param>
-''' <returns>
-''' Retorna una referencia al objeto que implementa la interfaz [IComponent] si se encuentra una coincidencia exacta. 
-''' Retorna [Nothing] si el Tag no existe en la coleccion o si ocurre una excepcion en tiempo de ejecucion.
-''' </returns>
-''' <remarks>
-''' El método utiliza control de errores pasivo 'On Error Resume Next' para evitar que una busqueda fallida 
-''' detenga la ejecucion del hilo principal, garantizando la robustez de la aplicacion en consultas masivas.
-''' </remarks>
-
 Public Function FindComponentByTag(ByVal Tag As String) As IComponent
-' Busca y retorna una referencia a un componente en la estacion por su Tag.
+' Busca y recupera un componente especifico en la colección de la estación por su Tag.
   On Error Resume Next
   
   Set FindComponentByTag = components_.Item(Tag)
@@ -193,15 +187,3 @@ Public Function FindComponentByTag(ByVal Tag As String) As IComponent
     Err.Clear
   End If
 End Function
-
-Public Sub ShowProperties()
-' Metodo para mostrar propiedades de la estacion (util para depuracion)
-  Debug.Print "--- Propiedades de la Estación ---"
-  Debug.Print " Tag: " & Me.Tag
-  Debug.Print " Nombre: " & Me.Name
-  Debug.Print " Descripción: " & Me.Description
-  Debug.Print " Estado Operativo: " & Me.Status
-  Debug.Print " Ubicación: " & Me.Location
-  Debug.Print " Componentes: " & Me.Components.Count
-  Debug.Print "----------------------------------"
-End Sub

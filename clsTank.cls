@@ -11,22 +11,22 @@ Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
 ' CLASE: clsTank
-' DESCRIPCION:
+' DESCRIPCIÓN:
 ' Representa un Tanque de Almacenamiento.
-' Utiliza composicion con clsComponent para heredar atributos comunes y aplica la interfaz IComponent para
+' Utiliza composición con clsComponent para heredar atributos comunes y aplica la interfaz IComponent para
 ' permitir el polimorfismo.
 '
 ' DEPENDENCIAS:
-'   - IComponent.cls: Para la coleccion de componentes (permite almacenar diferentes tipos).
+'   - IComponent.cls: Para la colección de componentes (permite almacenar diferentes tipos).
 '   - clsComponent.cls: Para la base de propiedades comunes.
 '
 ' PROPIEDADES PRINCIPALES:
 '   - Capacity (Double): Volumen Nominal (Bbls).
-'   - Diameter (Double): Diametro del tanque (pies/metros).
-'   - Material (Long): Tipo de material (para factor de expansion).
+'   - Diameter (Double): Diámetro del tanque (pies/metros).
+'   - Material (Long): Tipo de material (para factor de expansión).
 '   - HasFloatingRoof (Boolean): Indica si tiene techo flotante.
 '   - RoofWeight (Double): Peso del techo flotante (libras/kilos).
-'   - IsInsulated (Boolean): Indica si tiene recubrimiento termico.
+'   - IsInsulated (Boolean): Indica si tiene recubrimiento térmico.
 '   - RestingLevel (Double): Nivel donde el techo toca las patas. (Zona Crítica Mínima).
 '   - FloatingLevel (Double): Nivel donde el techo flota libremente. (Zona Crítica Máxima).
 '   - IsTableNetOfRoof (Boolean): Indica si la tabla ya descuenta el volumen desplazado por el techo.
@@ -37,7 +37,7 @@ Option Explicit
 '   - MinLevelDeduction (Double): Nivel mínimo de deducción.
 '   - MaxLevelDeduction (Double): Nivel máximo de deducción.
 '
-' METODOS:
+' MÉTODOS:
 '   - ShowProperties: Muestra las propiedades del Tanque.
 '
 Implements IComponent
@@ -48,7 +48,6 @@ Private baseComponent_ As clsComponent
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PRIVADAS (BACKING FIELDS)
 ' ---------------------------------------------------------------------------------------------------------
-
 Private capacity_ As Double
 Private diameter_ As Double
 Private material_ As eMtrl
@@ -66,22 +65,20 @@ Private minLevelDeduction_ As Double
 Private maxLevelDeduction_ As Double
 
 ' ---------------------------------------------------------------------------------------------------------
-' METODOS DE INSTANCIA DE CLASE
+' MÉTODOS DE INSTANCIA DE CLASE
 ' ---------------------------------------------------------------------------------------------------------
-
 Private Sub Class_Initialize()
   Set baseComponent_ = New clsComponent ' Inicializar el componente base y definir el tipo
   baseComponent_.ComponentType = "Tanque"
 End Sub
 
 Private Sub Class_Terminate()
-  Set baseComponent_ = Nothing ' Libera la memoria ocupada por la composicion
+  Set baseComponent_ = Nothing ' Libera la memoria ocupada por la composición
 End Sub
 
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES DE LA INTERFAZ ICOMPONENT (DELEGADAS AL BASE)
 ' ---------------------------------------------------------------------------------------------------------
-
 Public Property Get Tag() As String
   Tag = baseComponent_.Tag
 End Property
@@ -125,8 +122,8 @@ Public Property Let Status(ByVal value As String)
   baseComponent_.Status = value
 End Property
 
-' Referencia a la estacion a la que pertenece
 Public Property Get Station() As clsStation
+' Referencia a la estación a la que pertenece
   Set Station = baseComponent_.Station
 End Property
 
@@ -137,7 +134,6 @@ End Property
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES ESPECIFICAS DEL TANQUE
 ' ---------------------------------------------------------------------------------------------------------
-
 Public Property Get Capacity() As Double
   Capacity = capacity_
 End Property
@@ -268,15 +264,10 @@ Public Property Get MaxLevelDeduction() As Double
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
-' METODOS PUBLICOS
-' ---------------------------------------------------------------------------------------------------------
-
-' ---------------------------------------------------------------------------------------------------------
-' MÉTODO: ShowProperties
-' DESCRIPCIÓN: Muestra las propiedades del tanque en la ventana inmediato.
+' MÉTODOS PÚBLICOS
 ' ---------------------------------------------------------------------------------------------------------
 Public Sub ShowProperties()
-  On Error Resume Next
+' Metodo para mostrar propiedades del tanque (util para depuracion)
   Debug.Print "--- Detalle de Tanque ---"
   Debug.Print "Tag del Tanque: " & Me.Tag
   Debug.Print "Función o Servicio: " & Me.Service
@@ -289,11 +280,8 @@ Public Sub ShowProperties()
   Debug.Print "-------------------------"
 End Sub
 
-' ---------------------------------------------------------------------------------------------------------
-' MÉTODO: GetDynamicFRA
-' DESCRIPCIÓN: Orquesta la deducción de volumen según el tipo de tabla y condiciones de campo.
-' ---------------------------------------------------------------------------------------------------------
 Public Function GetDynamicFRA(ByVal currentLevel As Double, ByVal actualAPIObs As Double) As Double
+' Orquesta la deducción de volumen según el tipo de tabla y condiciones de campo.
   On Error GoTo ErrHandler
   
 ' Verificación de hardware (Crucial: Debe estar en True)
@@ -348,9 +336,8 @@ ErrHandler:
 End Function
 
 ' ---------------------------------------------------------------------------------------------------------
-' IMPLEMENTACION EXPLICITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
+' IMPLEMENTACIÓN EXPLÍCITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
 ' ---------------------------------------------------------------------------------------------------------
-
 Private Property Get IComponent_Tag() As String
   IComponent_Tag = Me.Tag
 End Property

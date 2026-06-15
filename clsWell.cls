@@ -11,18 +11,18 @@ Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
 ' CLASE: clsWell
-' DESCRIPCION:
-' Representa un Tanque de Pozo (Productor o Inyector).
-' Utiliza composicion con clsComponent para heredar atributos comunes y aplica la interfaz IComponent para
+' DESCRIPCIÓN:
+' Representa un Pozo (Productor o Inyector).
+' Utiliza composición con clsComponent para heredar atributos comunes y aplica la interfaz IComponent para
 ' permitir el polimorfismo.
 '
 ' DEPENDENCIAS:
-'   - IComponent.cls: Para la coleccion de componentes (permite almacenar diferentes tipos).
+'   - IComponent.cls: Para la colección de componentes (permite almacenar diferentes tipos).
 '   - clsComponent.cls: Para la base de propiedades comunes.
 '
 ' PROPIEDADES PRINCIPALES:
 '   - Depth (Double): Profundidad total del pozo (pies o metros).
-'   - FlowRate (Double): Tasa de flujo actual (Producción / Inyeccion).
+'   - FlowRate (Double): Tasa de flujo actual (Producción / Inyección).
 '
 ' METODOS:
 '   - ShowProperties: Muestra las propiedades del Pozo.
@@ -35,27 +35,24 @@ Private baseComponent_ As clsComponent
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PRIVADAS (BACKING FIELDS)
 ' ---------------------------------------------------------------------------------------------------------
-
 Private depth_ As Double
 Private flowRate_ As Double
 
 ' ---------------------------------------------------------------------------------------------------------
-' METODOS DE INSTANCIA DE CLASE
+' MÉTODOS DE INSTANCIA DE CLASE
 ' ---------------------------------------------------------------------------------------------------------
-
 Private Sub Class_Initialize()
   Set baseComponent_ = New clsComponent
   baseComponent_.ComponentType = "Pozo" ' Inicializar el componente base y definir el tipo
 End Sub
 
 Private Sub Class_Terminate()
-  Set baseComponent_ = Nothing ' Libera la memoria ocupada por la composicion
+  Set baseComponent_ = Nothing ' Libera la memoria ocupada por la composición
 End Sub
 
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES DE LA INTERFAZ ICOMPONENT (DELEGADAS AL BASE)
 ' ---------------------------------------------------------------------------------------------------------
-
 Public Property Get Tag() As String
   Tag = baseComponent_.Tag
 End Property
@@ -123,7 +120,6 @@ End Property
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES ESPECÍFICAS DEL POZO
 ' ---------------------------------------------------------------------------------------------------------
-
 Public Property Get Depth() As Double
   Depth = depth_
 End Property
@@ -145,11 +141,10 @@ Public Property Let FlowRate(ByVal value As Double)
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
-' METODOS PUBLICOS
+' MÉTODOS PÚBLICOS
 ' ---------------------------------------------------------------------------------------------------------
-
 Public Sub ShowProperties()
-  On Error Resume Next
+' Metodo para mostrar propiedades del pozo (útil para depuracion)
   Debug.Print "--- Detalle de Pozo ---"
   Debug.Print "Tag del Pozo:" & Me.Tag
   Debug.Print "Función o Servicio:" & Me.Service
@@ -162,9 +157,8 @@ Public Sub ShowProperties()
 End Sub
 
 ' ---------------------------------------------------------------------------------------------------------
-' IMPLEMENTACION EXPLICITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
+' IMPLEMENTACIÓN EXPLÍCITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
 ' ---------------------------------------------------------------------------------------------------------
-
 Private Property Get IComponent_Tag() As String
   IComponent_Tag = Me.Tag
 End Property

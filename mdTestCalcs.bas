@@ -2,7 +2,7 @@ Attribute VB_Name = "mdTestCalcs"
 Option Explicit
 
 ''' <summary>
-''' Ejecuta una bater�a de pruebas para validar la precisi�n del motor API.
+''' Ejecuta una batería de pruebas para validar la precisión del motor API.
 ''' Los resultados se imprimen en la Ventana de Inmediato (Ctrl + G).
 ''' </summary>
 Public Sub RunAPIEngineTests()
@@ -20,34 +20,34 @@ Public Sub RunAPIEngineTests()
 End Sub
 
 ''' <summary>
-''' Escenario 1: Validaci�n del Redondeo al Par (Banker's Rounding).
+''' Escenario 1: Validación del Redondeo al Par (Banker's Rounding).
 ''' </summary>
 Private Sub Test_RoundingLogic()
     Debug.Print "[TEST 1] Redondeo al Par (Regla API):"
     
-    ' El .5 debe ir al par m�s cercano
+    ' El .5 debe ir al par más cercano
     Debug.Print "  2.5 -> " & mdAPICalcs.ROUNDAPI(2.5, 0) & " (Esperado: 2)"
     Debug.Print "  3.5 -> " & mdAPICalcs.ROUNDAPI(3.5, 0) & " (Esperado: 4)"
     
-    ' Prueba de incremento (al 0.05 m�s cercano)
+    ' Prueba de incremento (al 0.05 más cercano)
     Dim valCustom As Double: valCustom = 10.126
     Debug.Print "  " & valCustom & " al 0.05 -> " & mdAPICalcs.ROUNDAPI(valCustom, 2, 5) & " (Esperado: 10.15)"
     Debug.Print "------------------------------------------------------"
 End Sub
 
 ''' <summary>
-''' Escenario 2: Correcci�n de Hidr�metro (API 9.3).
+''' Escenario 2: Corrección de Hidrómetro (API 9.3).
 ''' </summary>
 Private Sub Test_HydrometerCorrection()
-    Debug.Print "[TEST 2] Correcci�n de Hidr�metro (HYC):"
+    Debug.Print "[TEST 2] Corrección de Hidrómetro (HYC):"
     
     Dim apiObs As Double: apiObs = 30#
-    Dim tempObs As Double: tempObs = 100# ' Mucho m�s caliente que la base 60�F
+    Dim tempObs As Double: tempObs = 100# ' Mucho más caliente que la base 60°F
     
     Dim apiCorr As Double
     apiCorr = mdAPICalcs.DENSHYC(apiObs, tempObs, API, F)
     
-    ' A 100�F el vidrio se expande, el hidr�metro flota m�s y la lectura es ligeramente err�nea.
+    ' A 100°F el vidrio se expande, el hidrómetro flota más y la lectura es ligeramente errónea.
     Debug.Print "  API Obs: " & apiObs & " @ " & tempObs & "F"
     Debug.Print "  API Corr (Vidrio): " & Round(apiCorr, 4)
     Debug.Print "------------------------------------------------------"
@@ -55,23 +55,23 @@ End Sub
 
 ''' <summary>
 ''' Escenario 3: Motor Completo Newton-Raphson (API60F).
-''' Caso: Crudo a 95�F y 200 PSI.
+''' Caso: Crudo a 95°F y 200 PSI.
 ''' </summary>
 Private Sub Test_NewtonRaphson_Crude()
-    Debug.Print "[TEST 3] Motor Newton-Raphson (Conversi�n a 60�F):"
+    Debug.Print "[TEST 3] Motor Newton-Raphson (Conversión a 60°F):"
     
     Dim apiObs As Double: apiObs = 35.4
     Dim tempObs As Double: tempObs = 95.5
-    Dim presObs As Double: presObs = 215.3 ' Presi�n significativa
+    Dim presObs As Double: presObs = 215.3 ' Presión significativa
     
-    ' 1. Corregir Hidr�metro
+    ' 1. Corregir Hidrómetro
     Dim apiHyd As Double: apiHyd = mdAPICalcs.DENSHYC(apiObs, tempObs, API, F)
     
     ' 2. Hallar API60 (Iterativo)
     Dim api60 As Double
     api60 = mdAPICalcs.API60F(apiHyd, tempObs, CRD, presObs, 0)
     
-    ' 3. Obtener factores finales para auditor�a
+    ' 3. Obtener factores finales para auditoría
     Dim fCTL As Double: fCTL = mdAPICalcs.CTL(api60, tempObs, CRD)
     Dim fCPL As Double: fCPL = mdAPICalcs.CPL(api60, tempObs, presObs, CRD, 0)
     
