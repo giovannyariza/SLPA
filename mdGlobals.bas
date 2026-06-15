@@ -109,10 +109,11 @@ End Enum
 ' Estados operativos válidos para estaciones, tanques, pozos y líneas
 Public Enum eComponentStatus
   OP = 1 ' Operativo
-  OF = 2 ' Operativo con Fallas
-  MT = 3 ' Mantenimiento
-  MC = 4 ' Fuera de Servicio Mecánico
+  OF = 2 ' Operativo en Falla
+  MT = 3 ' Mantenimiento en Taller
+  MC = 4 ' Mantenimiento en Campo
   FS = 5 ' Fuera de Servicio
+  SB = 6 ' Disponible (Stand By)
 End Enum
 
 ' ---------------------------------------------------------------------------------------------------------

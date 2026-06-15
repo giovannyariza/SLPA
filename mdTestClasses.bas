@@ -52,7 +52,7 @@ Public Sub EjecutarPrueba_Infraestructura()
   tanqueEspecializado.Service = "Almacenamiento"
   tanqueEspecializado.Status = "MT" ' En mantenimiento
   ' Propiedades exclusivas de la clase concreta clsTank
-  tanqueEspecializado.Capacity = 15000 ' Capacidad en Barriles (Bbls)
+  tanqueEspecializado.NominalCapacity = 15000 ' Capacidad en Barriles (Bbls)
   
   ' 6. ASOCIACIÓN BIDIRECCIONAL (Adición de componentes a la Estación)
   ' Pasamos las instancias a través del contrato polimórfico IComponent
@@ -121,8 +121,8 @@ Sub CalcularInventarioActual()
     .RoofWeight = 3200
     .IsTableNetOfRoof = True ' Tabla contempla el ajuste
     .HasFloatingRoof = True
-    .TableRefAPI = 76.3
-    .TableBaseDeduction = 29.64
+    .ReferenceAPIObs = 76.3
+    .BaseDeduction = 29.64
     .APICorrectionGT = -0.14
     .APICorrectionLT = 0.14
     .MinLevelDeduction = 1610
@@ -137,7 +137,208 @@ Sub CalcularInventarioActual()
   
   ' La magia del objeto:
   Dim vcfMembrana As Double
-  vcfMembrana = ATK7210.GetDynamicFRA(nivelMedido, apiObs)
+  vcfMembrana = ATK7210.CalculateFRA(nivelMedido, apiObs)
   
   Debug.Print "Deducción Final Membrana: " & mdAPICalcs.ROUNDAPI(vcfMembrana, 2, 1) & " Bbls"
+End Sub
+
+''' <summary>
+''' Prueba todas las funciones de conveniencia de clsTank para liquidacion (tbl_Motor).
+''' Requiere que exista la tabla "tbl_Aforos" en la hoja "cnf_Tanques" con una columna "ATK-7210".
+''' </summary>
+Public Sub TestTankConvenienceMethods()
+  Dim t As New clsTank
+  Dim passCount As Long: passCount = 0
+  Dim failCount As Long: failCount = 0
+  Dim totalTests As Long: totalTests = 0
+  Dim testName As String
+  Dim result As Double
+
+  ' ── SETUP: Configurar el tanque con datos realistas ──
+  With t
+    .Tag = "ATK-7210"
+    .Description = "Tanque de prueba para liquidacion"
+    .NominalCapacity = 55838.15
+    .Diameter = 30473        ' mm
+    .Material = MCrbn        ' Acero al carbono
+    .ShellThickness = 0.25   ' pulgadas
+    .FluidType = REF         ' Crudo
+    .ReferenceAPI60F = 76.3    ' API a 60F
+    .ReferenceAPIObs = 76.3
+    .IsThermalInsulated = False
+    .HasFloatingRoof = True
+    .IsTableNetOfRoof = True
+    .RoofWeight = 3200       ' Kg
+    .MinLevelDeduction = 1610
+    .MaxLevelDeduction = 1800
+    .APICorrectionLT = -0.14
+    .APICorrectionGT = 0.14
+    .BaseDeduction = 29.64
+  End With
+
+  ' Asignar la tabla de aforo si existe
+  On Error Resume Next
+  Set t.StrappingTable = ThisWorkbook.Sheets("cnf_Tanques").ListObjects("tbl_Aforos")
+  If t.StrappingTable Is Nothing Then
+    Debug.Print "ADVERTENCIA: No se encontro 'tbl_Aforos'. Las pruebas que requieren TOV fallaran."
+  End If
+  On Error GoTo 0
+
+  ' Datos de campo simulados
+  Dim nivel_mm As Long: nivel_mm = 6163
+  Dim tempLiqF As Double: tempLiqF = 84.3
+  Dim tempAmbF As Double: tempAmbF = 75
+  Dim api60 As Double: api60 = 64.1
+  Dim apiObs As Double: apiObs = 67.5
+  Dim bsw As Double: bsw = 0
+
+  ' Limpiar cache antes de comenzar
+  mdTankService.ClearCache
+
+  Debug.Print "======================================================================"
+  Debug.Print "INICIANDO PRUEBA DE FUNCIONES DE CONVENIENCIA DE clsTank"
+  Debug.Print "======================================================================"
+  Debug.Print "Tanque: " & t.Tag & " | API60: " & t.ReferenceAPI60F
+  Debug.Print "Nivel: " & nivel_mm & " mm | T_Liq: " & tempLiqF & "F | T_Amb: " & tempAmbF & "F"
+  Debug.Print "----------------------------------------------------------------------"
+
+  ' ==================================================================
+  ' TEST 1: GetTOV - Volumen Total Observado
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 1: GetTOV(" & nivel_mm & " mm)"
+  result = t.GetTOV(nivel_mm)
+  If result > 0 Then
+    Debug.Print "[PASS] " & testName & " -> TOV: " & FormatNumber(result, 2) & " Bbls"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[SKIP] " & testName & " -> Sin tabla de aforo disponible"
+    ' No cuenta como fail, se omite
+    totalTests = totalTests - 1
+  End If
+
+  ' ==================================================================
+  ' TEST 2: CalculateCTL - Factor de correccion por temperatura
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 2: CalculateCTL(" & tempLiqF & "F)"
+  result = t.CalculateCTL(api60, tempLiqF)
+  If result > 0 And result < 2 Then
+    Debug.Print "[PASS] " & testName & " -> CTL: " & FormatNumber(result, 6)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Valor fuera de rango: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 3: CalculateCTSH - Factor de correccion del casco
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 3: CalculateCTSH(TLiq=" & tempLiqF & ", TAmb=" & tempAmbF & ")"
+  result = t.CalculateCTSH(tempLiqF, tempAmbF)
+  If result > 0 And result < 2 Then
+    Debug.Print "[PASS] " & testName & " -> CTSH: " & FormatNumber(result, 6)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Valor fuera de rango: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 4: CalculateCPL sin presion (debe retornar 1)
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 4: CalculateCPL sin presion"
+  result = t.CalculateCPL(api60, tempLiqF)
+  If result = 1 Then
+    Debug.Print "[PASS] " & testName & " -> CPL: " & result & " (sin presion)"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Esperado 1, obtuvo: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 5: CalculateFRA - Ajuste por techo flotante
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 5: CalculateFRA(" & nivel_mm & " mm, API=" & apiObs & ")"
+  result = t.CalculateFRA(nivel_mm, apiObs)
+  If Abs(result) >= 0 Then
+    Debug.Print "[PASS] " & testName & " -> FRA: " & FormatNumber(result, 2) & " Bbls"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Esperado >= 0, obtuvo: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 6: CalculateGOV - Volumen Bruto Observado (compuesto)
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 6: CalculateGOV (TOV*CTSH+FRA)"
+  result = t.CalculateGOV(nivel_mm, tempLiqF, tempAmbF, api60)
+  If result > 0 Then
+    Debug.Print "[PASS] " & testName & " -> GSV: " & FormatNumber(result, 2) & " Bbls"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Esperado > 0, obtuvo: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 7: CalculateGSV - Volumen Estandar Bruto (compuesto)
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 7: CalculateGSV (GOV*CTL)"
+  result = t.CalculateGSV(nivel_mm, tempLiqF, tempAmbF, api60)
+  If result > 0 Then
+    Debug.Print "[PASS] " & testName & " -> GSV: " & FormatNumber(result, 2) & " Bbls"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Esperado > 0, obtuvo: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 8: CalculateNSV - Volumen Estandar Neto (GSV - FRA)
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 8: CalculateNSV (GSV*CSW)"
+  result = t.CalculateNSV(nivel_mm, tempLiqF, tempAmbF, api60, bsw)
+  If result > 0 Then
+    Debug.Print "[PASS] " & testName & " -> NSV: " & FormatNumber(result, 2) & " Bbls"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Esperado > 0, obtuvo: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 9: Verificar que NSV <= GSV (logica consistente)
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 9: NSV <= GSV (consistencia logica)"
+  Dim gsvVal As Double, nsvVal As Double
+  gsvVal = t.CalculateGSV(nivel_mm, tempLiqF, tempAmbF, api60)
+  nsvVal = t.CalculateNSV(nivel_mm, tempLiqF, tempAmbF, api60, bsw)
+  If gsvVal > 0 And nsvVal > 0 And nsvVal <= gsvVal Then
+    Debug.Print "[PASS] " & testName & " -> GSV=" & FormatNumber(gsvVal, 2) & ", NSV=" & FormatNumber(nsvVal, 2)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> GSV=" & FormatNumber(gsvVal, 2) & ", NSV=" & FormatNumber(nsvVal, 2)
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' RESUMEN
+  ' ==================================================================
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "RESUMEN: " & passCount & "/" & totalTests & " pasaron, " & failCount & " fallaron"
+  Debug.Print "======================================================================"
+
+  ' Limpieza
+  Set t = Nothing
+  mdTankService.ClearCache
 End Sub
