@@ -222,7 +222,7 @@ Public Sub TestTankConvenienceMethods()
   ' ==================================================================
   totalTests = totalTests + 1
   testName = "Test 2: CalculateCTL(" & tempLiqF & "F)"
-  result = t.CalculateCTL(api60, tempLiqF)
+  result = t.CalculateCTL(tempLiqF, api60)
   If result > 0 And result < 2 Then
     Debug.Print "[PASS] " & testName & " -> CTL: " & FormatNumber(result, 6)
     passCount = passCount + 1
@@ -250,7 +250,7 @@ Public Sub TestTankConvenienceMethods()
   ' ==================================================================
   totalTests = totalTests + 1
   testName = "Test 4: CalculateCPL sin presion"
-  result = t.CalculateCPL(api60, tempLiqF)
+  result = t.CalculateCPL(tempLiqF, api60)
   If result = 1 Then
     Debug.Print "[PASS] " & testName & " -> CPL: " & result & " (sin presion)"
     passCount = passCount + 1
@@ -277,10 +277,10 @@ Public Sub TestTankConvenienceMethods()
   ' TEST 6: CalculateGOV - Volumen Bruto Observado (compuesto)
   ' ==================================================================
   totalTests = totalTests + 1
-  testName = "Test 6: CalculateGOV (TOV*CTSH+FRA)"
+  testName = "Test 6: CalculateGOV (TOV*CTSH-FRA)"
   result = t.CalculateGOV(nivel_mm, tempLiqF, tempAmbF, api60)
   If result > 0 Then
-    Debug.Print "[PASS] " & testName & " -> GSV: " & FormatNumber(result, 2) & " Bbls"
+    Debug.Print "[PASS] " & testName & " -> GOV: " & FormatNumber(result, 2) & " Bbls"
     passCount = passCount + 1
   Else
     Debug.Print "[FAIL] " & testName & " -> Esperado > 0, obtuvo: " & result
@@ -341,4 +341,194 @@ Public Sub TestTankConvenienceMethods()
   ' Limpieza
   Set t = Nothing
   mdTankService.ClearCache
+End Sub
+
+''' <summary>
+''' Prueba la clase clsFluid: propiedades, calculos y validaciones.
+''' </summary>
+Public Sub TestFluidClass()
+  Dim f As New clsFluid
+  Dim passCount As Long: passCount = 0
+  Dim failCount As Long: failCount = 0
+  Dim totalTests As Long: totalTests = 0
+  Dim testName As String
+  Dim result As Double
+
+  Debug.Print "======================================================================"
+  Debug.Print "INICIANDO PRUEBA DE CLASE clsFluid"
+  Debug.Print "======================================================================"
+
+  ' ── SETUP: Configurar fluido ──
+  f.Name = "Crudo Castilla"
+  f.Description = "Crudo pesado del bloque Castilla"
+  f.FluidType = CRD
+  f.TypicalAPI = 35.4
+  f.TypicalViscosity = 12.5
+  f.ReferenceTemperature = 60
+  f.ReferencePressure = 0
+
+  Debug.Print "Fluido: " & f.Name & " | Tipo: " & f.GetFluidTypeName
+  Debug.Print "API60: " & f.TypicalAPI & " | Dens60F: " & FormatNumber(f.Density60F, 4) & " SGU"
+  Debug.Print "----------------------------------------------------------------------"
+
+  ' ==================================================================
+  ' TEST 1: Auto-sincronizacion API → Densidad
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 1: Sincronizacion API → Densidad"
+  result = f.TypicalDensity
+  Dim expectedDens As Double
+  expectedDens = mdConversion.CONVDENS(35.4, A2S, True)
+  If Abs(result - expectedDens) < 0.0001 Then
+    Debug.Print "[PASS] " & testName & " -> Densidad: " & FormatNumber(result, 4)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Esperado: " & expectedDens & ", Obtenido: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 2: Auto-sincronizacion Densidad → API
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 2: Sincronizacion Densidad → API"
+  f.TypicalDensity = 0.85
+  result = f.TypicalAPI
+  Dim expectedAPI As Double
+  expectedAPI = mdConversion.CONVDENS(0.85, S2A, True)
+  If Abs(result - expectedAPI) < 0.01 Then
+    Debug.Print "[PASS] " & testName & " -> API: " & FormatNumber(result, 2)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Esperado: " & expectedAPI & ", Obtenido: " & result
+    failCount = failCount + 1
+  End If
+
+  ' Restaurar API
+  f.TypicalAPI = 35.4
+
+  ' ==================================================================
+  ' TEST 3: CalculateCTL
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 3: CalculateCTL(95F)"
+  result = f.CalculateCTL(95)
+  If result > 0 And result < 1 Then
+    Debug.Print "[PASS] " & testName & " -> CTL: " & FormatNumber(result, 6)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Fuera de rango: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 4: CalculateAPIObs
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 4: CalculateAPIObs(95F)"
+  result = f.CalculateAPIObs(95)
+  If result > 0 And result < 100 Then
+    Debug.Print "[PASS] " & testName & " -> APIObs: " & FormatNumber(result, 2)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Fuera de rango: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 5: CalculateCSW
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 5: CalculateCSW(BSW=2%)"
+  result = f.CalculateCSW(2)
+  Dim expectedCSW As Double
+  expectedCSW = 1 - (2 / 100)
+  If Abs(result - expectedCSW) < 0.0001 Then
+    Debug.Print "[PASS] " & testName & " -> CSW: " & FormatNumber(result, 4)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Esperado: " & expectedCSW & ", Obtenido: " & result
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 6: CalculateVolumetricProperties (estructura completa)
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 6: CalculateVolumetricProperties"
+  Dim props As FluidCalcResult
+  props = f.CalculateVolumetricProperties(95, 215)
+  If props.IsValid And props.CTL > 0 And props.CTPL > 0 Then
+    Debug.Print "[PASS] " & testName
+    Debug.Print "       Alpha60=" & FormatNumber(props.Alpha60, 8)
+    Debug.Print "       CTL=" & FormatNumber(props.CTL, 6)
+    Debug.Print "       CPL=" & FormatNumber(props.CPL, 6)
+    Debug.Print "       CTPL=" & FormatNumber(props.CTPL, 6)
+    Debug.Print "       APIObs=" & FormatNumber(props.APIObs, 2)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Calculo invalido"
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 7: ValidateForCustodyTransfer
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 7: ValidateForCustodyTransfer"
+  Dim errMsg As String
+  If f.ValidateForCustodyTransfer(errMsg) Then
+    Debug.Print "[PASS] " & testName & " -> Valido para custodia"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> " & errMsg
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 8: Fluido invalido (API fuera de rango)
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 8: API invalido (-200)"
+  Dim fBad As New clsFluid
+  fBad.FluidType = CRD
+  Dim isValid As Boolean
+  On Error Resume Next
+  fBad.TypicalAPI = -200
+  isValid = (Err.Number = 0)
+  On Error GoTo 0
+  If Not isValid Then
+    Debug.Print "[PASS] " & testName & " -> Rechazo API invalido correctamente"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Deberia haber rechazado API=-200"
+    failCount = failCount + 1
+  End If
+
+  ' ==================================================================
+  ' TEST 9: ShowProperties
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 9: ShowProperties"
+  ' Solo verificamos que no lance error
+  On Error Resume Next
+  f.ShowProperties
+  If Err.Number = 0 Then
+    Debug.Print "[PASS] " & testName & " -> Ejecutado sin errores"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Error: " & Err.Description
+    failCount = failCount + 1
+  End If
+  On Error GoTo 0
+
+  ' ==================================================================
+  ' RESUMEN
+  ' ==================================================================
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "RESUMEN: " & passCount & "/" & totalTests & " pasaron, " & failCount & " fallaron"
+  Debug.Print "======================================================================"
+
+  Set f = Nothing
+  Set fBad = Nothing
 End Sub

@@ -28,15 +28,13 @@ Private idx_Observaciones As Long
 
 ' Estructura para mantener configuracion de un tanque
 Private Type TankConfig
-  API60 As Double
-  FluidType As eTypeLiq
+  Fluid As clsFluid
   Material As eMtrl
   Diameter As Double
   ShellThickness As Double
   HasFloatingRoof As Boolean
   RoofWeight As Double
   IsTableNetOfRoof As Boolean
-  ReferenceAPIObs As Double
   APICorrectionGT As Double
   APICorrectionLT As Double
   MinLevelDeduction As Double
@@ -185,15 +183,19 @@ Private Function LoadTankConfigs() As Object
 
     cfg.IsLoaded = True
 
-    cfg.API60 = GetCellNumeric(lr, colMap, "API60", 35)
-    cfg.FluidType = GetCellFluidType(lr, colMap, "FluidType", CRD)
+    ' Crear y configurar el fluido
+    Set cfg.Fluid = New clsFluid
+    cfg.Fluid.FluidType = GetCellFluidType(lr, colMap, "FluidType", CRD)
+    cfg.Fluid.TypicalAPI = GetCellNumeric(lr, colMap, "API60", 35)
+    cfg.Fluid.ReferenceTemperature = GetCellNumeric(lr, colMap, "ReferenceTemperature", 60)
+    cfg.Fluid.ReferencePressure = GetCellNumeric(lr, colMap, "ReferencePressure", 0)
+
     cfg.Material = GetCellMaterial(lr, colMap, "Material", MCrbn)
     cfg.Diameter = GetCellNumeric(lr, colMap, "Diameter", 0)
     cfg.ShellThickness = GetCellNumeric(lr, colMap, "ShellThickness", 0)
     cfg.HasFloatingRoof = GetCellBool(lr, colMap, "HasFloatingRoof", False)
     cfg.RoofWeight = GetCellNumeric(lr, colMap, "RoofWeight", 0)
     cfg.IsTableNetOfRoof = GetCellBool(lr, colMap, "IsTableNetOfRoof", False)
-    cfg.ReferenceAPIObs = GetCellNumeric(lr, colMap, "ReferenceAPIObs", cfg.API60)
     cfg.APICorrectionGT = GetCellNumeric(lr, colMap, "APICorrectionGT", 0)
     cfg.APICorrectionLT = GetCellNumeric(lr, colMap, "APICorrectionLT", 0)
     cfg.MinLevelDeduction = GetCellNumeric(lr, colMap, "MinLevelDeduction", 0)
@@ -474,8 +476,9 @@ Private Function ProcessSingleRecord(ByRef regData As Variant, ByVal rowIdx As L
   Else
     ' Configuracion por defecto si no existe en tbl_Tanques
     cfg.IsLoaded = True
-    cfg.API60 = 35
-    cfg.FluidType = CRD
+    Set cfg.Fluid = New clsFluid
+    cfg.Fluid.FluidType = CRD
+    cfg.Fluid.TypicalAPI = 35
     cfg.Material = MCrbn
     cfg.Diameter = 0
     cfg.ShellThickness = 0
@@ -486,9 +489,9 @@ Private Function ProcessSingleRecord(ByRef regData As Variant, ByVal rowIdx As L
   ' Crear tanque temporal y configurar
   Dim t As New clsTank
   t.Tag = tag
-  t.FluidType = cfg.FluidType
-  t.ReferenceAPI60F = cfg.API60
-  t.ReferenceAPIObs = cfg.ReferenceAPIObs
+  Set t.Fluid = cfg.Fluid
+  t.ReferenceAPI60F = cfg.Fluid.TypicalAPI
+  t.ReferenceAPIObs = cfg.Fluid.TypicalAPI
   t.Material = cfg.Material
   t.Diameter = cfg.Diameter
   t.ShellThickness = cfg.ShellThickness
@@ -504,8 +507,8 @@ Private Function ProcessSingleRecord(ByRef regData As Variant, ByVal rowIdx As L
   ' Asignar tabla de aforo si esta en cache
   t.StrappingTable = GetCachedStrappingTable(tag)
 
-  ' Calcular factores
-  Dim tov As Double, ctl As Double, ctsh As Double, fra As Double
+  ' Calcular factores (API60F es opcional, usa el fluido interno)
+  Dim tov As Double, ctsh As Double, fra As Double
   Dim gov As Double, gsv As Double, nsv As Double, csw As Double
 
   tov = t.GetTOV(nivel)
@@ -513,15 +516,14 @@ Private Function ProcessSingleRecord(ByRef regData As Variant, ByVal rowIdx As L
     tov = 0 ' Sin tabla de aforo, no se puede calcular
   End If
 
-  ctl = t.CalculateCTL(cfg.API60, tempLiq)
   ctsh = t.CalculateCTSH(tempLiq, tempAmb)
-  fra = t.CalculateFRA(nivel, cfg.ReferenceAPIObs)
+  fra = t.CalculateFRA(nivel, cfg.Fluid.TypicalAPI)
   csw = t.CalculateCSW(nivelAgua)
 
   If tov > 0 Then
-    gov = t.CalculateGOV(nivel, tempLiq, tempAmb, cfg.API60)
-    gsv = t.CalculateGSV(nivel, tempLiq, tempAmb, cfg.API60)
-    nsv = t.CalculateNSV(nivel, tempLiq, tempAmb, cfg.API60, nivelAgua)
+    gov = t.CalculateGOV(nivel, tempLiq, tempAmb)
+    gsv = t.CalculateGSV(nivel, tempLiq, tempAmb)
+    nsv = t.CalculateNSV(nivel, tempLiq, tempAmb, bsw:=nivelAgua)
   Else
     gov = 0
     gsv = 0
@@ -536,9 +538,9 @@ Private Function ProcessSingleRecord(ByRef regData As Variant, ByVal rowIdx As L
   result(4) = nivelAgua           ' Nivel_Agua_mm
   result(5) = tempLiq             ' Temp_Liq_F
   result(6) = tempAmb             ' Temp_Amb_F
-  result(7) = cfg.API60           ' API60
+  result(7) = cfg.Fluid.TypicalAPI ' API60
   result(8) = tov                 ' TOV_Bbl
-  result(9) = ctl                 ' CTL
+  result(9) = t.CalculateCTL(tempLiq) ' CTL
   result(10) = ctsh               ' CTSH
   result(11) = fra                ' FRA_Bbl
   result(12) = gov                ' GOV_Bbl
