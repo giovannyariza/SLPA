@@ -176,3 +176,26 @@ Public Function ConvertToDoubleArray(ByVal InputVar As Variant) As Double()
 
   ConvertToDoubleArray = res
 End Function
+
+''' <summary>
+''' Busca el indice de una columna en un array de headers (1-based, 2D array).
+''' Retorna 0 si no se encuentra.
+''' </summary>
+''' <param name="hdr">Array de headers (1 a N, 1 a M).</param>
+''' <param name="name">Nombre de la columna a buscar (case-insensitive, partial match).</param>
+''' <returns>Indice de la columna (1-based) o 0 si no se encuentra.</returns>
+
+Public Function FindColumnIndex(ByRef hdr As Variant, ByVal name As String) As Long
+  If Not IsArray(hdr) Then
+    FindColumnIndex = 0
+    Exit Function
+  End If
+  Dim c As Long
+  For c = 1 To UBound(hdr, 2)
+    If InStr(1, CStr(hdr(1, c)), name, vbTextCompare) > 0 Then
+      FindColumnIndex = c
+      Exit Function
+    End If
+  Next c
+  FindColumnIndex = 0
+End Function

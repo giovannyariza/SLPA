@@ -31,8 +31,8 @@ Private baseComponent_ As clsComponent
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PRIVADAS (BACKING FIELDS)
 ' ---------------------------------------------------------------------------------------------------------
-' -- Fluido --
-Private fluidType_ As eTypeLiq
+' -- Fluido contenido --
+Private fluid_ As clsFluid
 
 ' -- Calibracion --
 Private calibrationDate_ As Date
@@ -82,9 +82,6 @@ Private apiCorrectionGT_ As Double
 
 ' -- Referencia externa --
 Private strappingTable_ As Object ' ListObject
-
-' -- Fluido contenido --
-Private fluid_ As clsFluid
 
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS DE INSTANCIA DE CLASE
@@ -156,12 +153,13 @@ End Property
 ' PROPIEDADES ESPECIFICAS DEL TANQUE (en orden de backing fields)
 ' ---------------------------------------------------------------------------------------------------------
 ' -- Fluido --
-Public Property Get FluidType() As eTypeLiq
-  FluidType = fluidType_
+Public Property Get Fluid() As clsFluid
+  If fluid_ Is Nothing Then Set fluid_ = New clsFluid
+  Set Fluid = fluid_
 End Property
 
-Public Property Let FluidType(ByVal value As eTypeLiq)
-  fluidType_ = value
+Public Property Set Fluid(ByVal value As clsFluid)
+  Set fluid_ = value
 End Property
 
 ' -- Calibracion --
@@ -472,16 +470,6 @@ Public Property Get StrappingTable() As Object ' ListObject
   Set StrappingTable = strappingTable_
 End Property
 
-' -- Fluido contenido --
-Public Property Get Fluid() As clsFluid
-  If fluid_ Is Nothing Then Set fluid_ = New clsFluid
-  Set Fluid = fluid_
-End Property
-
-Public Property Set Fluid(ByVal value As clsFluid)
-  Set fluid_ = value
-End Property
-
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS PUBLICOS
 ' ---------------------------------------------------------------------------------------------------------
@@ -489,6 +477,7 @@ End Property
 Public Sub ShowProperties()
   Debug.Print "--- Detalle de Tanque ---"
   Debug.Print "Tag del Tanque: " & Me.Tag
+  Debug.Print "Producto: " & Me.Fluid.Name
   Debug.Print "Sistema: " & Me.System
   Debug.Print "Funcion o Servicio: " & Me.Service
   Debug.Print "Estado: " & Me.Status

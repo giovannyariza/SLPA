@@ -532,3 +532,80 @@ Public Sub TestFluidClass()
   Set f = Nothing
   Set fBad = Nothing
 End Sub
+
+''' <summary>
+''' Prueba la funcion LoadTankFromTable de mdCalcProcessor.
+''' Carga un tanque desde tbl_Tanques y muestra sus propiedades.
+''' </summary>
+Public Sub TestLoadTankFromTable()
+  Dim tankTag As String
+  tankTag = "ATK-7210" ' Cambiar por un Tag existente en tbl_Tanques
+
+  Debug.Print "======================================================================"
+  Debug.Print "PRUEBA: Carga de Tanque desde tbl_Tanques"
+  Debug.Print "======================================================================"
+  Debug.Print "Buscando tanque: " & tankTag
+
+  Dim t As clsTank
+  Set t = mdTankService.LoadTankFromTable(tankTag)
+
+  If t Is Nothing Then
+    Debug.Print "ERROR: No se pudo cargar el tanque '" & tankTag & "'."
+    Debug.Print "       Verifique que exista en tbl_Tanques con ese Tag."
+    Exit Sub
+  End If
+
+  Debug.Print "Tanque cargado exitosamente!"
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "TAG: " & t.Tag
+  Debug.Print "Descripcion: " & t.Description
+  Debug.Print "Sistema: " & t.System
+  Debug.Print "Servicio: " & t.Service
+  Debug.Print "Estado: " & t.Status
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "FLUIDO:"
+  Debug.Print "  Nombre: " & t.Fluid.Name
+  Debug.Print "  Tipo: " & t.Fluid.GetFluidTypeName
+  Debug.Print "  API60: " & FormatNumber(t.Fluid.TypicalAPI, 2)
+  Debug.Print "  Densidad 60F: " & FormatNumber(t.Fluid.Density60F, 4) & " SGU"
+  Debug.Print "  Viscosidad: " & t.Fluid.TypicalViscosity & " cSt"
+  Debug.Print "  Ref. Temp/Pres: " & t.Fluid.ReferenceTemperature & " F / " & t.Fluid.ReferencePressure & " psi"
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "CONSTRUCCION:"
+  Debug.Print "  Material: " & t.Material
+  Debug.Print "  Espesor Casco: " & t.ShellThickness & " in"
+  Debug.Print "  Tipo Techo: " & t.RoofType
+  Debug.Print "  Tipo Piso: " & t.FloorType
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "DIMENSIONES:"
+  Debug.Print "  Capacidad Nominal: " & t.NominalCapacity & " Bbls"
+  Debug.Print "  Diametro: " & t.Diameter & " ft"
+  Debug.Print "  Altura Efectiva: " & t.EffectiveHeight
+  Debug.Print "  Altura Referencia: " & t.ReferenceHeight
+  Debug.Print "  Nivel Llenado Seguro: " & t.SafeFillLevel
+  Debug.Print "  Nivel Bombeo Seguro: " & t.SafePumpLevel
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "CARACTERISTICAS:"
+  Debug.Print "  Aislado Termico: " & IIf(t.IsThermalInsulated, "Si", "No")
+  Debug.Print "  Techo Flotante: " & IIf(t.HasFloatingRoof, "Si", "No")
+  Debug.Print "  Tabla Neta de Techo: " & IIf(t.IsTableNetOfRoof, "Si", "No")
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "DEDUCCIONES:"
+  Debug.Print "  Zona Critica Inferior: " & t.CriticalZoneLower
+  Debug.Print "  Zona Critica Superior: " & t.CriticalZoneUpper
+  Debug.Print "  Peso Techo: " & t.RoofWeight
+  Debug.Print "  Deduccion Base: " & t.BaseDeduction
+  Debug.Print "  Nivel Minimo Deduccion: " & t.MinLevelDeduction
+  Debug.Print "  Nivel Maximo Deduccion: " & t.MaxLevelDeduction
+  Debug.Print "  Correccion API LT: " & t.APICorrectionLT
+  Debug.Print "  Correccion API GT: " & t.APICorrectionGT
+  Debug.Print "----------------------------------------------------------------------"
+
+  ' Mostrar propiedades completas del tanque
+  Debug.Print "PROPIEDADES COMPLETAS (ShowProperties):"
+  t.ShowProperties
+
+  Debug.Print "======================================================================"
+
+  Set t = Nothing
+End Sub
