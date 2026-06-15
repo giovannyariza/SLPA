@@ -519,7 +519,7 @@ Public Function CalculateCTL(ByVal tempObsF As Double, Optional ByVal API60F As 
     CalculateCTL = 1
     Exit Function
   End If
-  CalculateCTL = mdAPICalcs.CTL(apiVal, tempObsF, Me.FluidType)
+  CalculateCTL = mdAPICalcs.CTL(apiVal, tempObsF, Me.Fluid.FluidType)
   Exit Function
 ErrHandler:
   Debug.Print "Error en CalculateCTL [" & Me.Tag & "]: " & Err.Description
@@ -543,7 +543,7 @@ Public Function CalculateCPL(ByVal tempObsF As Double, Optional ByVal API60F As 
     CalculateCPL = 1
     Exit Function
   End If
-  CalculateCPL = mdAPICalcs.CPL(apiVal, tempObsF, presObs, Me.FluidType, pe)
+  CalculateCPL = mdAPICalcs.CPL(apiVal, tempObsF, presObs, Me.Fluid.FluidType, pe)
   Exit Function
 ErrHandler:
   Debug.Print "Error en CalculateCPL [" & Me.Tag & "]: " & Err.Description
@@ -593,7 +593,7 @@ Public Function CalculateGOV(ByVal level_mm As Long, ByVal tempLiqF As Double, B
   Dim apiVal As Double
   apiVal = Me.ResolveAPI60(API60F)
   Dim fra As Double, apiObs As Double
-  apiObs = mdAPICalcs.APIOBS(apiVal, tempLiqF, Me.FluidType)
+  apiObs = mdAPICalcs.APIOBS(apiVal, tempLiqF, Me.Fluid.FluidType)
   If apiObs > 0 Then
     fra = Me.CalculateFRA(level_mm, apiObs)
   Else

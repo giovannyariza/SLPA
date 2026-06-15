@@ -112,7 +112,7 @@ ErrHandler:
   Resume FinSub
 End Sub
 
-Sub CalcularInventarioActual()
+Public Sub CalcularInventarioActual()
   Dim ATK7210 As New clsTank
   
   ' Configuración basada en tu imagen

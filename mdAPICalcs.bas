@@ -518,14 +518,14 @@ Public Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional
   Dim CTL_Iter As Double    ' CTL para API60_Iter y TempObs
   Dim CPL_Iter As Double    ' CPL para API60_Iter, TempObs, PresObs, Pe
   Dim CTPL_Iter As Double   ' CTPL para API60_Iter, TempObs, PresObs, Pe
-  Dim Em as Double          ' Función de error
+  Dim Em As Double          ' Función de error
   Dim Da As Double          ' Coeficiente Da para la derivada
   Dim Dt As Double          ' Derivada correspondiente a la temperatura
   Dim FP_Iter As Double     ' FP para API60_Iter y TempObs
   Dim Dp As Double
   Dim Dp_Num As Double
   Dim Dp_Denom As Double  
-  Dim DRho60 as Double      ' Corrección (DRho60) usando la derivada (Método de Newton)
+  Dim DRho60 As Double      ' Corrección (DRho60) usando la derivada (Método de Newton)
 
   For m = 1 To MAXITERATIONS
     ' Convertir el Rho60_Iter (supuesto, ITS-90) a API60_Iter (ITS-90)
@@ -585,7 +585,7 @@ Public Function API60F(ByVal APIOBS As Double, ByVal TempObs As Double, Optional
   Next m ' Siguiente iteración
 
   ' Si llega aquí, no hubo convergencia
-  Debug.Print "API60F: No se alcanzó convergencia en " & MaxIterations & " iteraciones."
+  Debug.Print "API60F: No se alcanzó convergencia en " & MAXITERATIONS & " iteraciones."
   API60F = 0
   Exit Function
 
@@ -707,15 +707,14 @@ Public Function ROUNDAPI(ByVal Val As Double, ByVal PosDec As Long, Optional ByV
   Dim DecPart As Double
   ' Obtener la parte decimal del valor normalizado
   DecPart = NormVal - IntPart
-  
-  ' Usar constante global cEPSILON_ROUNDING de mdGlobals ' Pequeña tolerancia para comparación de punto flotante
-  Dim ValRounded as Double ' Valor truncado para el redondeo especial de 0.5  
-  
+
+  Dim ValRounded As Double ' Valor truncado para el redondeo especial de 0.5
+
   ' Truncar el valor normalizado para el redondeo especial de 0.5 Regla API:
-  ' Si la parte decimal es EXACTAMENTE 0.5, redondear al ENTERO PAR más cercano.
+  ' Si la parte decimal es EXACTAMENTE 0.5, redondear al ENTERO PAR mas cercano.
   ' Si la parte decimal es > 0.5, redondear hacia arriba (IntPart + 0.5) si no fuera por la regla API.
   ' Si la parte decimal es < 0.5, redondear hacia abajo IntPart.
-  If Abs(DecPart - 0.5) < cEPSILON Then ' Si la parte fraccionaria es muy cercana a 0.5
+  If Abs(DecPart - 0.5) < cEPSILON_ROUNDING Then ' Si la parte fraccionaria es muy cercana a 0.5
     ' La parte fraccionaria es 0.5. Verificar si el ENTERO de NormVal es par o impar.
     If (IntPart Mod 2) <> 0 Then ' Si el entero es IMPAR
       ValRounded = IntPart + 1 ' Redondear hacia arriba para hacerlo PAR
