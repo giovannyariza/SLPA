@@ -1,43 +1,17 @@
-﻿VERSION 1.0 CLASS
-BEGIN
-  MultiUse = -1  'True
-END
-Attribute VB_Name = "clsTank"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
-Option Explicit
+﻿Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
 ' CLASE: clsTank
-' DESCRIPCIÓN:
+' DESCRIPCION:
 ' Representa un Tanque de Almacenamiento.
-' Utiliza composición con clsComponent para heredar atributos comunes y aplica la interfaz IComponent para
+' Utiliza composicion con clsComponent para heredar atributos comunes y aplica la interfaz IComponent para
 ' permitir el polimorfismo.
 '
 ' DEPENDENCIAS:
-'   - IComponent.cls: Para la colección de componentes (permite almacenar diferentes tipos).
+'   - IComponent.cls: Para la coleccion de componentes (permite almacenar diferentes tipos).
 '   - clsComponent.cls: Para la base de propiedades comunes.
 '
-' PROPIEDADES PRINCIPALES:
-'   - Capacity (Double): Volumen Nominal (Bbls).
-'   - Diameter (Double): Diámetro del tanque (pies/metros).
-'   - Material (Long): Tipo de material (para factor de expansión).
-'   - HasFloatingRoof (Boolean): Indica si tiene techo flotante.
-'   - RoofWeight (Double): Peso del techo flotante (libras/kilos).
-'   - IsInsulated (Boolean): Indica si tiene recubrimiento térmico.
-'   - RestingLevel (Double): Nivel donde el techo toca las patas. (Zona Crítica Mínima).
-'   - FloatingLevel (Double): Nivel donde el techo flota libremente. (Zona Crítica Máxima).
-'   - IsTableNetOfRoof (Boolean): Indica si la tabla ya descuenta el volumen desplazado por el techo.
-'   - TableRefAPI (Double): API Observado de referencia.
-'   - TableBaseDeduction (Double): Deducción volumen por desplazamiento de la Membrana.
-'   - APICorrectionGT (Double): Volumen corregido por cada grado API mayor al API Observado de referencia.
-'   - APICorrectionLT (Double): Volumen corregido por cada grado API menor al API Observado de referencia.
-'   - MinLevelDeduction (Double): Nivel mínimo de deducción.
-'   - MaxLevelDeduction (Double): Nivel máximo de deducción.
-'
-' MÉTODOS:
+' METODOS:
 '   - ShowProperties: Muestra las propiedades del Tanque.
 '
 Implements IComponent
@@ -48,48 +22,82 @@ Private baseComponent_ As clsComponent
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PRIVADAS (BACKING FIELDS)
 ' ---------------------------------------------------------------------------------------------------------
-Private capacity_ As Double
-Private diameter_ As Double
+' -- Fluido contenido --
+Private fluid_ As clsFluid
+
+' -- Calibracion --
+Private calibrationDate_ As Date
+Private calibrationMethod_ As String
+Private calibrationAgency_ As String
+Private calibrationCertificate_ As String
+
+' -- Incertidumbre --
+Private coverageFactor_ As Double
+Private expandedUncertainty_ As Double
+Private confidenceLevel_ As Double
+
+' -- Construccion --
 Private material_ As eMtrl
+Private shellThickness_ As Double
+Private roofType_ As String
+Private floorType_ As String
+
+' -- Dimensiones --
+Private nominalCapacity_ As Double
+Private diameter_ As Double
+Private effectiveHeight_ As Double
+Private referenceHeight_ As Double
+Private safeFillLevel_ As Double
+Private safePumpLevel_ As Double
+
+' -- Temperatura y API de referencia --
+Private referenceAPI60F_ As Double
+Private referenceAPIObs_ As Double
+Private calibrationTemperature_ As Double
+Private shellTemperature_ As Double
+
+' -- Caracteristicas booleanas --
+Private isThermalInsulated_ As Boolean
 Private hasFloatingRoof_ As Boolean
-Private roofWeight_ As Double
-Private isInsulated_ As Boolean
-Private restingLevel_ As Double
-Private floatingLevel_ As Double
 Private isTableNetOfRoof_ As Boolean
-Private tableRefAPI_ As Double
-Private tableBaseDeduction_ As Double
-Private apiCorrectionGT_ As Double
-Private apiCorrectionLT_ As Double
+
+' -- Deducciones y niveles criticos --
+Private criticalZoneLower_ As Double
+Private criticalZoneUpper_ As Double
+Private roofWeight_ As Double
+Private baseDeduction_ As Double
 Private minLevelDeduction_ As Double
 Private maxLevelDeduction_ As Double
+Private apiCorrectionLT_ As Double
+Private apiCorrectionGT_ As Double
+
+' -- Referencia externa --
+Private strappingTable_ As Object ' ListObject
 
 ' ---------------------------------------------------------------------------------------------------------
-' MÉTODOS DE INSTANCIA DE CLASE
+' METODOS DE INSTANCIA DE CLASE
 ' ---------------------------------------------------------------------------------------------------------
-
 Private Sub Class_Initialize()
-  Set baseComponent_ = New clsComponent ' Inicializar el componente base y definir el tipo
+  Set baseComponent_ = New clsComponent
   baseComponent_.ComponentType = "Tanque"
 End Sub
 
 Private Sub Class_Terminate()
-  Set baseComponent_ = Nothing ' Libera la memoria ocupada por la composición
+  Set baseComponent_ = Nothing
 End Sub
 
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES DE LA INTERFAZ ICOMPONENT (DELEGADAS AL BASE)
 ' ---------------------------------------------------------------------------------------------------------
-
-Public Property Get Tag() As String
-  Tag = baseComponent_.Tag
+Public Property Get tag() As String
+  tag = baseComponent_.tag
 End Property
 
-Public Property Let Tag(ByVal value As String)
+Public Property Let tag(ByVal value As String)
   If Trim(value) = "" Then
-    Err.Raise eErrors.errTankEmptyTag, "clsTank", "El Tag del tanque no puede estar vacío."
+    Err.Raise eErrors.errTankEmptyTag, "clsTank", "El Tag del tanque no puede estar vacio."
   End If
-  baseComponent_.Tag = UCase(Trim(value))
+  baseComponent_.tag = UCase(Trim(value))
 End Property
 
 Public Property Get Description() As String
@@ -124,9 +132,7 @@ Public Property Let Status(ByVal value As String)
   baseComponent_.Status = value
 End Property
 
-' Referencia a la estacion a la que pertenece
 Public Property Get Station() As clsStation
-' Referencia a la estación a la que pertenece
   Set Station = baseComponent_.Station
 End Property
 
@@ -135,15 +141,16 @@ Public Property Set Station(ByVal value As clsStation)
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
-' PROPIEDADES ESPECIFICAS DEL TANQUE
+' PROPIEDADES ESPECIFICAS DEL TANQUE (en orden de backing fields)
 ' ---------------------------------------------------------------------------------------------------------
 ' -- Fluido --
-Public Property Get FluidType() As eTypeLiq
-  FluidType = fluidType_
+Public Property Get Fluid() As clsFluid
+  If fluid_ Is Nothing Then Set fluid_ = New clsFluid
+  Set Fluid = fluid_
 End Property
 
-Public Property Let FluidType(ByVal value As eTypeLiq)
-  fluidType_ = value
+Public Property Set Fluid(ByVal value As clsFluid)
+  Set fluid_ = value
 End Property
 
 ' -- Calibracion --
@@ -256,9 +263,9 @@ End Property
 
 Public Property Let NominalCapacity(ByVal value As Double)
   If value < 0 Then
-    Err.Raise eErrors.errTankNegativeCapacity, "clsTank", "La capacidad nominal no puede ser negativa."
+    Err.Raise vbObjectError + 528, "clsTank", "La capacidad nominal no puede ser negativa."
   End If
-  capacity_ = value
+  nominalCapacity_ = value
 End Property
 
 Public Property Get Diameter() As Double
@@ -267,17 +274,98 @@ End Property
 
 Public Property Let Diameter(ByVal value As Double)
   If value < 0 Then
-    Err.Raise eErrors.errTankNegativeDiameter, "clsTank", "El diámetro no puede ser negativo."
+    Err.Raise vbObjectError + 529, "clsTank", "El diametro no puede ser negativo."
   End If
   diameter_ = value
 End Property
 
-Public Property Get Material() As eMtrl
-  Material = material_
+Public Property Get EffectiveHeight() As Double
+  EffectiveHeight = effectiveHeight_
 End Property
 
-Public Property Let Material(ByVal value As eMtrl)
-  material_ = value
+Public Property Let EffectiveHeight(ByVal value As Double)
+  If value < 0 Then
+    Err.Raise vbObjectError + 530, "clsTank", "La altura efectiva no puede ser negativa."
+  End If
+  effectiveHeight_ = value
+End Property
+
+Public Property Get ReferenceHeight() As Double
+  ReferenceHeight = referenceHeight_
+End Property
+
+Public Property Let ReferenceHeight(ByVal value As Double)
+  referenceHeight_ = value
+End Property
+
+Public Property Get SafeFillLevel() As Double
+  SafeFillLevel = safeFillLevel_
+End Property
+
+Public Property Let SafeFillLevel(ByVal value As Double)
+  If value < 0 Then
+    Err.Raise vbObjectError + 531, "clsTank", "El nivel de llenado seguro no puede ser negativo."
+  End If
+  safeFillLevel_ = value
+End Property
+
+Public Property Get SafePumpLevel() As Double
+  SafePumpLevel = safePumpLevel_
+End Property
+
+Public Property Let SafePumpLevel(ByVal value As Double)
+  If value < 0 Then
+    Err.Raise vbObjectError + 532, "clsTank", "El nivel de bombeo seguro no puede ser negativo."
+  End If
+  safePumpLevel_ = value
+End Property
+
+' -- Temperatura y API de referencia --
+Public Property Get ReferenceAPI60F() As Double
+  ReferenceAPI60F = referenceAPI60F_
+End Property
+
+Public Property Let ReferenceAPI60F(ByVal value As Double)
+  If value <= -cAPI_B Then
+    Err.Raise vbObjectError + 533, "clsTank", "API60 de referencia debe ser mayor a -131.5."
+  End If
+  referenceAPI60F_ = value
+End Property
+
+Public Property Get ReferenceAPIObs() As Double
+  ReferenceAPIObs = referenceAPIObs_
+End Property
+
+Public Property Let ReferenceAPIObs(ByVal value As Double)
+  If value <= -cAPI_B Then
+    Err.Raise vbObjectError + 534, "clsTank", "API Observado de referencia debe ser mayor a -131.5."
+  End If
+  referenceAPIObs_ = value
+End Property
+
+Public Property Get CalibrationTemperature() As Double
+  CalibrationTemperature = calibrationTemperature_
+End Property
+
+Public Property Let CalibrationTemperature(ByVal value As Double)
+  calibrationTemperature_ = value
+End Property
+
+Public Property Get ShellTemperature() As Double
+  ShellTemperature = shellTemperature_
+End Property
+
+Public Property Let ShellTemperature(ByVal value As Double)
+  shellTemperature_ = value
+End Property
+
+' -- Caracteristicas booleanas --
+Public Property Get IsThermalInsulated() As Boolean
+  IsThermalInsulated = isThermalInsulated_
+End Property
+
+Public Property Let IsThermalInsulated(ByVal value As Boolean)
+  isThermalInsulated_ = value
 End Property
 
 Public Property Get HasFloatingRoof() As Boolean
@@ -288,104 +376,99 @@ Public Property Let HasFloatingRoof(ByVal value As Boolean)
   hasFloatingRoof_ = value
 End Property
 
-Public Property Get RoofWeight() As Double
-  RoofWeight = roofWeight_
-End Property
-
-Public Property Let RoofWeight(ByVal value As Double)
-  If value < 0 Then
-    Err.Raise eErrors.errTankNegativeRoofWeight, "clsTank", "El peso del techo no puede ser negativo."
-  End If
-  roofWeight_ = value
-End Property
-
-Public Property Get IsInsulated() As Boolean
-  IsInsulated = isInsulated_
-End Property
-
-Public Property Let IsInsulated(ByVal value As Boolean)
-  isInsulated_ = value
-End Property
-
-Public Property Let RestingLevel(ByVal value As Double)
-  restingLevel_ = value
-End Property
-
-Public Property Get RestingLevel() As Double
-  RestingLevel = restingLevel_
-End Property
-
-Public Property Let FloatingLevel(ByVal value As Double)
-  floatingLevel_ = value
-End Property
-
-Public Property Get FloatingLevel() As Double
-  FloatingLevel = floatingLevel_
+Public Property Get IsTableNetOfRoof() As Boolean
+  IsTableNetOfRoof = isTableNetOfRoof_
 End Property
 
 Public Property Let IsTableNetOfRoof(ByVal value As Boolean)
   isTableNetOfRoof_ = value
 End Property
 
-Public Property Get IsTableNetOfRoof() As Boolean
-  IsTableNetOfRoof = isTableNetOfRoof_
+' -- Deducciones y niveles criticos --
+Public Property Get CriticalZoneLower() As Double
+  CriticalZoneLower = criticalZoneLower_
 End Property
 
-Public Property Let TableRefAPI(ByVal value As Double)
-  tableRefAPI_ = value
+Public Property Let CriticalZoneLower(ByVal value As Double)
+  criticalZoneLower_ = value
 End Property
 
-Public Property Get TableRefAPI() As Double
-  TableRefAPI = tableRefAPI_
+Public Property Get CriticalZoneUpper() As Double
+  CriticalZoneUpper = criticalZoneUpper_
 End Property
 
-Public Property Let TableBaseDeduction(ByVal value As Double)
-  tableBaseDeduction_ = value
+Public Property Let CriticalZoneUpper(ByVal value As Double)
+  criticalZoneUpper_ = value
 End Property
 
-Public Property Get TableBaseDeduction() As Double
-  TableBaseDeduction = tableBaseDeduction_
+Public Property Get RoofWeight() As Double
+  RoofWeight = roofWeight_
 End Property
 
-Public Property Let APICorrectionGT(ByVal value As Double)
-  apiCorrectionGT_ = value
+Public Property Let RoofWeight(ByVal value As Double)
+  If value < 0 Then
+    Err.Raise vbObjectError + 535, "clsTank", "El peso del techo no puede ser negativo."
+  End If
+  roofWeight_ = value
 End Property
 
-Public Property Get APICorrectionGT() As Double
-  APICorrectionGT = apiCorrectionGT_
+Public Property Get BaseDeduction() As Double
+  BaseDeduction = baseDeduction_
 End Property
 
-Public Property Let APICorrectionLT(ByVal value As Double)
-  apiCorrectionLT_ = value
-End Property
-
-Public Property Get APICorrectionLT() As Double
-  APICorrectionLT = apiCorrectionLT_
-End Property
-
-Public Property Let MinLevelDeduction(ByVal value As Double)
-  minLevelDeduction_ = value
+Public Property Let BaseDeduction(ByVal value As Double)
+  baseDeduction_ = value
 End Property
 
 Public Property Get MinLevelDeduction() As Double
   MinLevelDeduction = minLevelDeduction_
 End Property
 
-Public Property Let MaxLevelDeduction(ByVal value As Double)
-  maxLevelDeduction_ = value
+Public Property Let MinLevelDeduction(ByVal value As Double)
+  minLevelDeduction_ = value
 End Property
 
 Public Property Get MaxLevelDeduction() As Double
   MaxLevelDeduction = maxLevelDeduction_
 End Property
 
+Public Property Let MaxLevelDeduction(ByVal value As Double)
+  maxLevelDeduction_ = value
+End Property
+
+Public Property Get APICorrectionLT() As Double
+  APICorrectionLT = apiCorrectionLT_
+End Property
+
+Public Property Let APICorrectionLT(ByVal value As Double)
+  apiCorrectionLT_ = value
+End Property
+
+Public Property Get APICorrectionGT() As Double
+  APICorrectionGT = apiCorrectionGT_
+End Property
+
+Public Property Let APICorrectionGT(ByVal value As Double)
+  apiCorrectionGT_ = value
+End Property
+
+' -- Referencia externa --
+Public Property Set StrappingTable(ByVal value As Object) ' ListObject
+  Set strappingTable_ = value
+End Property
+
+Public Property Get StrappingTable() As Object ' ListObject
+  Set StrappingTable = strappingTable_
+End Property
+
 ' ---------------------------------------------------------------------------------------------------------
-' MÉTODOS PÚBLICOS
+' METODOS PUBLICOS
 ' ---------------------------------------------------------------------------------------------------------
+
 Public Sub ShowProperties()
-' Metodo para mostrar propiedades del tanque (util para depuracion)
   Debug.Print "--- Detalle de Tanque ---"
-  Debug.Print "Tag del Tanque: " & Me.Tag
+  Debug.Print "Tag del Tanque: " & Me.tag
+  Debug.Print "Producto: " & Me.Fluid.Name
   Debug.Print "Sistema: " & Me.System
   Debug.Print "Funcion o Servicio: " & Me.Service
   Debug.Print "Estado: " & Me.Status
@@ -394,80 +477,253 @@ Public Sub ShowProperties()
   Debug.Print "Aislado Termicamente?: " & IIf(Me.IsThermalInsulated, "Si", "No")
   Debug.Print "Tiene Techo Flotante?: " & IIf(Me.HasFloatingRoof, "Si", "No")
   If Not Me.Station Is Nothing Then
-    Debug.Print "Pertenece a Estación: " & Me.Station.Tag
+    Debug.Print "Pertenece a Estacion: " & Me.Station.tag
   End If
   Debug.Print "-------------------------"
 End Sub
 
-Public Function GetDynamicFRA(ByVal currentLevel As Double, ByVal actualAPIObs As Double) As Double
-' Orquesta la deducción de volumen según el tipo de tabla y condiciones de campo.
+' ---------------------------------------------------------------------------------------------------------
+' METODOS DE CONVENIENCIA PARA LIQUIDACION (tbl_Motor)
+' ---------------------------------------------------------------------------------------------------------
+''' <summary>
+''' Obtiene el Volumen Total Observado (TOV) desde la tabla de aforo cacheada.
+''' </summary>
+Public Function GetTOV(ByVal Level_mm As Long) As Double
   On Error GoTo ErrHandler
-  
-' Verificación de hardware (Crucial: Debe estar en True)
-  If Not hasFloatingRoof_ Then Exit Function
-  
-  ' Verificación de nivel (mm)
-  If currentLevel <= minLevelDeduction_ Then Exit Function
+  If strappingTable_ Is Nothing Then Exit Function
+  GetTOV = mdTankService.GetVolumeFromTable(strappingTable_, Me.tag, Level_mm)
+  Exit Function
+ErrHandler:
+  Debug.Print "Error en GetTOV [" & Me.tag & "]: " & Err.Description
+  GetTOV = 0
+End Function
+
+''' <summary>
+''' Calcula el Factor de Correccion por Temperatura del Liquido (CTL).
+''' Si API60F se omite, usa el API del fluido contenido.
+''' </summary>
+Public Function CalculateCTL(ByVal tempObsF As Double, Optional ByVal API60F As Double = 0) As Double
+  On Error GoTo ErrHandler
+  Dim apiVal As Double
+  apiVal = Me.ResolveAPI60(API60F)
+  If apiVal <= -cAPI_B Then
+    CalculateCTL = 1
+    Exit Function
+  End If
+  CalculateCTL = mdAPICalcs.CTL(apiVal, tempObsF, Me.Fluid.FluidType)
+  Exit Function
+ErrHandler:
+  Debug.Print "Error en CalculateCTL [" & Me.tag & "]: " & Err.Description
+  CalculateCTL = 1
+End Function
+
+''' <summary>
+''' Calcula el Factor de Correccion por Presion del Liquido (CPL).
+''' Si no hay presion, retorna 1 (sin correccion).
+''' </summary>
+Public Function CalculateCPL(ByVal tempObsF As Double, Optional ByVal API60F As Double = 0, _
+  Optional ByVal presObs As Double = 0, Optional ByVal pe As Double = 0) As Double
+  On Error GoTo ErrHandler
+  If presObs <= 0 Then
+    CalculateCPL = 1
+    Exit Function
+  End If
+  Dim apiVal As Double
+  apiVal = Me.ResolveAPI60(API60F)
+  If apiVal <= -cAPI_B Then
+    CalculateCPL = 1
+    Exit Function
+  End If
+  CalculateCPL = mdAPICalcs.CPL(apiVal, tempObsF, presObs, Me.Fluid.FluidType, pe)
+  Exit Function
+ErrHandler:
+  Debug.Print "Error en CalculateCPL [" & Me.tag & "]: " & Err.Description
+  CalculateCPL = 1
+End Function
+
+''' <summary>
+''' Calcula el Factor de Correccion por Temperatura de la Coraza (CTSH).
+''' </summary>
+Public Function CalculateCTSH(ByVal tempLiqF As Double, ByVal tempAmbF As Double) As Double
+  On Error GoTo ErrHandler
+  CalculateCTSH = mdAPICalcs.ctsh(tempLiqF, tempAmbF, Me.Material, f, cTEMPBASE_F)
+  Exit Function
+ErrHandler:
+  Debug.Print "Error en CalculateCTSH [" & Me.tag & "]: " & Err.Description
+  CalculateCTSH = 1
+End Function
+
+''' <summary>
+''' Calcula el Factor de Corrección por Agua y Sedimento (CSW).
+''' </summary>
+Public Function CalculateCSW(ByVal bsw As Double) As Double
+  On Error GoTo ErrHandler
+  CalculateCSW = 1 - (bsw / 100)
+  Exit Function
+ErrHandler:
+  Debug.Print "Error en CalculateCSW [" & Me.tag & "]: " & Err.Description
+  CalculateCSW = 1
+End Function
+
+''' <summary>
+''' Calcula el Volumen Bruto Observado (GOV).
+''' GOV = TOV * CTSH - FRA
+''' Si API60F se omite, usa el API del fluido contenido.
+''' </summary>
+Public Function CalculateGOV(ByVal Level_mm As Long, ByVal tempLiqF As Double, ByVal tempAmbF As Double, _
+  Optional ByVal API60F As Double = 0) As Double
+  On Error GoTo ErrHandler
+  Dim tov As Double
+  tov = Me.GetTOV(Level_mm)
+  If tov <= 0 Then
+    CalculateGOV = 0
+    Exit Function
+  End If
+  Dim ctsh As Double
+  ctsh = Me.CalculateCTSH(tempLiqF, tempAmbF)
+  Dim apiVal As Double
+  apiVal = Me.ResolveAPI60(API60F)
+  Dim fra As Double, apiObs As Double
+  apiObs = mdAPICalcs.apiObs(apiVal, tempLiqF, Me.Fluid.FluidType)
+  If apiObs > 0 Then
+    fra = Me.CalculateFRA(Level_mm, apiObs)
+  Else
+    fra = Me.CalculateFRA(Level_mm, Me.ReferenceAPIObs)
+  End If
+  CalculateGOV = tov * ctsh - fra
+  Exit Function
+ErrHandler:
+  Debug.Print "Error en CalculateGOV [" & Me.tag & "]: " & Err.Description
+  CalculateGOV = 0
+End Function
+
+''' <summary>
+''' Calcula el Volumen Estandar Bruto (GSV).
+''' GSV = GOV * CTL * CPL
+''' Si API60F se omite, usa el API del fluido contenido.
+''' </summary>
+Public Function CalculateGSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, ByVal tempAmbF As Double, _
+  Optional ByVal API60F As Double = 0, Optional ByVal presObs As Double = 0, Optional ByVal pe As Double = 0) As Double
+  On Error GoTo ErrHandler
+  Dim gov As Double
+  gov = Me.CalculateGOV(Level_mm, tempLiqF, tempAmbF, API60F)
+  If gov <= 0 Then
+    CalculateGSV = 0
+    Exit Function
+  End If
+  Dim apiVal As Double
+  apiVal = Me.ResolveAPI60(API60F)
+  Dim CTL As Double
+  CTL = Me.CalculateCTL(tempLiqF, apiVal)
+  Dim CPL As Double
+  CPL = Me.CalculateCPL(tempLiqF, apiVal, presObs, pe)
+  CalculateGSV = gov * CTL * CPL
+  Exit Function
+ErrHandler:
+  Debug.Print "Error en CalculateGSV [" & Me.tag & "]: " & Err.Description
+  CalculateGSV = 0
+End Function
+
+''' <summary>
+''' Calcula el Volumen Estandar Neto (NSV).
+''' NSV = GSV * CSW
+''' Si API60F se omite, usa el API del fluido contenido.
+''' </summary>
+Public Function CalculateNSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, ByVal tempAmbF As Double, _
+  Optional ByVal API60F As Double = 0, Optional ByVal bsw As Double = 0) As Double
+  On Error GoTo ErrHandler
+  Dim gsv As Double
+  gsv = Me.CalculateGSV(Level_mm, tempLiqF, tempAmbF, API60F)
+  If gsv <= 0 Then
+    CalculateNSV = 0
+    Exit Function
+  End If
+  Dim csw As Double
+  csw = Me.CalculateCSW(bsw)
+  CalculateNSV = gsv * csw
+  Exit Function
+ErrHandler:
+  Debug.Print "Error en CalculateNSV [" & Me.tag & "]: " & Err.Description
+  CalculateNSV = 0
+End Function
+
+''' <summary>
+''' Resuelve el API60 a usar: si el parametro es 0, usa el del fluido contenido.
+''' </summary>
+Private Function ResolveAPI60(ByVal API60F As Double) As Double
+  If API60F > -cAPI_B And API60F <> 0 Then
+    ResolveAPI60 = API60F
+  Else
+    ' Usar el fluido contenido si esta configurado
+    If Not fluid_ Is Nothing And fluid_.IsValid Then
+      ResolveAPI60 = fluid_.TypicalAPI
+    ElseIf Me.ReferenceAPI60F > -cAPI_B Then
+      ResolveAPI60 = Me.ReferenceAPI60F
+    ElseIf Me.ReferenceAPIObs > -cAPI_B Then
+      ResolveAPI60 = Me.ReferenceAPIObs
+    Else
+      ResolveAPI60 = 0 ' Sin API valido disponible
+    End If
+  End If
+End Function
+
+''' <summary>
+''' Calcula el Ajuste por Techo Flotante (FRA) para liquidacion.
+''' </summary>
+Public Function CalculateFRA(ByVal currentLevel As Double, ByVal actualAPIObs As Double) As Double
+  On Error GoTo ErrHandler
+
+  If Not Me.HasFloatingRoof Then Exit Function
+  If currentLevel <= Me.MinLevelDeduction Then Exit Function
 
   Dim totalPotentialDeduction As Double
-  
-  ' DECISIÓN DE LÓGICA: ¿Tabla Bruta o Tabla Neta?
-  If Not isTableNetOfRoof_ Then
-    ' --- CASO A: TABLA BRUTA (Arquímedes) ---
-    ' Calculamos la densidad observada a partir del API medido
-    Dim densObs As Double
-    densObs = mdConversion.CONVDENS(actualAPIObs, A2S, True)
-    
-    ' FRA = Peso / Densidad (Usando el motor de mdAPICalcs)
-    totalPotentialDeduction = mdAPICalcs.FRA(roofWeight_, densObs, 1)
-      
+
+  If Not Me.IsTableNetOfRoof Then
+    Dim DensObs As Double
+    DensObs = mdConversion.CONVDENS(actualAPIObs, A2S, True)
+    totalPotentialDeduction = mdAPICalcs.fra(Me.RoofWeight, DensObs, 1)
   Else
-    ' --- CASO B: TABLA NETA (Ajuste por Coeficientes API) ---
-    ' Implementamos la lógica de tu tabla de aforo ATK-7210
-    Dim diffAPI As Double: diffAPI = actualAPIObs - tableRefAPI_
-    
+    Dim diffAPI As Double
+    diffAPI = actualAPIObs - Me.ReferenceAPIObs
     If diffAPI > 0 Then
-      ' API Real > Referencia (Líquido más liviano, más deducción)
-      totalPotentialDeduction = diffAPI * apiCorrectionGT_
+      totalPotentialDeduction = diffAPI * Me.APICorrectionGT
     Else
-      ' API Real < Referencia (Líquido más pesado, menos deducción)
-      totalPotentialDeduction = Abs(diffAPI) * apiCorrectionLT_
+      totalPotentialDeduction = Abs(diffAPI) * Me.APICorrectionLT
     End If
   End If
 
-  ' AJUSTE POR NIVEL (Zona de Flotación Parcial)
-  ' Si el nivel está entre Min y Max, la membrana no desplaza su peso total
-  If currentLevel >= maxLevelDeduction_ Then
-    ' Flotación Total
-    GetDynamicFRA = totalPotentialDeduction
+  If currentLevel >= Me.MaxLevelDeduction Then
+    CalculateFRA = totalPotentialDeduction
   Else
-    ' Interpolación Lineal en la transición
     Dim partialFactor As Double
-    partialFactor = (currentLevel - minLevelDeduction_) / (maxLevelDeduction_ - minLevelDeduction_)
-    GetDynamicFRA = totalPotentialDeduction * partialFactor
+    partialFactor = (currentLevel - Me.MinLevelDeduction) / (Me.MaxLevelDeduction - Me.MinLevelDeduction)
+    CalculateFRA = totalPotentialDeduction * partialFactor
   End If
 
   Exit Function
 
 ErrHandler:
-  Debug.Print "Error en GetDynamicFRA [" & Me.Tag & "]: " & Err.Description
-  GetDynamicFRA = 0
+  Debug.Print "Error en CalculateFRA [" & Me.tag & "]: " & Err.Description
+  CalculateFRA = 0
 End Function
 
 ' ---------------------------------------------------------------------------------------------------------
-' IMPLEMENTACIÓN EXPLÍCITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
+' IMPLEMENTACION EXPLICITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
 ' ---------------------------------------------------------------------------------------------------------
-
 Private Property Get IComponent_Tag() As String
-  IComponent_Tag = Me.Tag
+  IComponent_Tag = Me.tag
 End Property
 
 Private Property Let IComponent_Tag(ByVal rhs As String)
-  Me.Tag = rhs
+  Me.tag = rhs
 End Property
 
 Private Property Get IComponent_Description() As String
-  IComponent_Description = baseComponent_.Description
+  IComponent_Description = Me.Description
+End Property
+
+Private Property Let IComponent_Description(ByVal rhs As String)
+  Me.Description = rhs
 End Property
 
 Private Property Get IComponent_ComponentType() As String
@@ -475,7 +731,7 @@ Private Property Get IComponent_ComponentType() As String
 End Property
 
 Private Property Let IComponent_ComponentType(ByVal rhs As String)
-' Propiedad de solo lectura programática
+' Propiedad de solo lectura programatica
 End Property
 
 Private Property Get IComponent_System() As String
@@ -484,10 +740,6 @@ End Property
 
 Private Property Let IComponent_System(ByVal rhs As String)
   Me.System = rhs
-End Property
-
-Private Property Let IComponent_Description(ByVal rhs As String)
-  baseComponent_.Description = rhs
 End Property
 
 Private Property Get IComponent_Service() As String

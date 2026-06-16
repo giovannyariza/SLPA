@@ -42,13 +42,15 @@ Private description_ As String
 Private status_ As String
 Private location_ As String
 Private components_ As Collection ' Coleccion para almacenar los componentes
+Private referenceFluids_ As Collection ' Coleccion de fluidos de referencia
 
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS DE INSTANCIA DE CLASE
 ' ---------------------------------------------------------------------------------------------------------
 
 Private Sub Class_Initialize()
-  Set components_ = New Collection ' Inicializar la coleccion al crear la clase
+  Set components_ = New Collection
+  Set referenceFluids_ = New Collection
 End Sub
 
 Private Sub Class_Terminate()
@@ -109,9 +111,23 @@ Public Property Let Location(ByVal value As String)
 End Property
 
 Public Property Get Components() As Collection
-  ' Acceso a la colección de componentes (Solo lectura)
   Set Components = components_
 End Property
+
+Public Property Get ReferenceFluids() As Collection
+  Set ReferenceFluids = referenceFluids_
+End Property
+
+Public Sub AddReferenceFluid(ByVal fluid As clsFluid)
+  If fluid Is Nothing Then Exit Sub
+  If fluid.Name <> "" Then
+    On Error Resume Next
+    referenceFluids_.Add fluid, fluid.Name
+    On Error GoTo 0
+  Else
+    referenceFluids_.Add fluid
+  End If
+End Sub
 
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS PUBLICOS
@@ -195,13 +211,17 @@ Public Function FindComponentByTag(ByVal Tag As String) As IComponent
 End Function
 
 Public Sub ShowProperties()
-' Metodo para mostrar propiedades de la estacion (util para depuracion)
-  Debug.Print "--- Propiedades de la Estación ---"
+  Debug.Print "--- Propiedades de la Estacion ---"
   Debug.Print " Tag: " & Me.Tag
   Debug.Print " Nombre: " & Me.Name
-  Debug.Print " Descripción: " & Me.Description
+  Debug.Print " Descripcion: " & Me.Description
   Debug.Print " Estado Operativo: " & Me.Status
-  Debug.Print " Ubicación: " & Me.Location
+  Debug.Print " Ubicacion: " & Me.Location
   Debug.Print " Componentes: " & Me.Components.Count
+  Debug.Print " Fluidos de Referencia: " & Me.ReferenceFluids.Count
+  Dim f As Variant
+  For Each f In Me.ReferenceFluids
+    Debug.Print "   - " & f.Name & " (API: " & FormatNumber(f.TypicalAPI, 1) & ")"
+  Next f
   Debug.Print "----------------------------------"
 End Sub

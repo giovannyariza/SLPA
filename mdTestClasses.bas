@@ -342,3 +342,123 @@ Public Sub TestTankConvenienceMethods()
   Set t = Nothing
   mdTankService.ClearCache
 End Sub
+
+''' <summary>
+''' Prueba la integración de clsFluid en clsWell, clsLine y clsStation.
+''' </summary>
+Public Sub TestFluidIntegration()
+  Dim passCount As Long: passCount = 0
+  Dim failCount As Long: failCount = 0
+  Dim totalTests As Long: totalTests = 0
+  Dim testName As String
+
+  Debug.Print "======================================================================"
+  Debug.Print "PRUEBA: Integracion de clsFluid en Well, Line y Station"
+  Debug.Print "======================================================================"
+
+  ' ==================================================================
+  ' TEST 1: clsWell con fluido
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 1: clsWell con fluido"
+  Dim w As New clsWell
+  w.Tag = "P-001"
+  w.Depth = 8500
+  w.FlowRate = 1200
+  w.Fluid.Name = "Crudo Castilla"
+  w.Fluid.FluidType = CRD
+  w.Fluid.TypicalAPI = 28.5
+
+  If w.Fluid.TypicalAPI = 28.5 And w.Fluid.Name = "Crudo Castilla" Then
+    Debug.Print "[PASS] " & testName
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> API=" & w.Fluid.TypicalAPI
+    failCount = failCount + 1
+  End If
+  w.ShowProperties
+  Set w = Nothing
+
+  ' ==================================================================
+  ' TEST 2: clsLine con fluido
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 2: clsLine con fluido"
+  Dim l As New clsLine
+  l.Tag = "LIN-4022"
+  l.Length = 5280
+  l.Diameter = 8
+  l.Material = MCrbn
+  l.Fluid.Name = "Gas Natural"
+  l.Fluid.FluidType = CRD
+  l.Fluid.TypicalAPI = 50
+
+  If l.Fluid.TypicalAPI = 50 And l.Fluid.Name = "Gas Natural" Then
+    Debug.Print "[PASS] " & testName
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName
+    failCount = failCount + 1
+  End If
+  l.ShowProperties
+  Set l = Nothing
+
+  ' ==================================================================
+  ' TEST 3: clsStation con colección de fluidos
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 3: clsStation con ReferenceFluids"
+  Dim s As New clsStation
+  s.Tag = "EC-01"
+  s.Name = "Estacion Castilla"
+
+  Dim f1 As New clsFluid
+  f1.Name = "Crudo Pesado"
+  f1.TypicalAPI = 18
+  s.AddReferenceFluid f1
+
+  Dim f2 As New clsFluid
+  f2.Name = "Crudo Liviano"
+  f2.TypicalAPI = 38
+  s.AddReferenceFluid f2
+
+  If s.ReferenceFluids.Count = 2 Then
+    Debug.Print "[PASS] " & testName & " -> " & s.ReferenceFluids.Count & " fluidos"
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName & " -> Count=" & s.ReferenceFluids.Count
+    failCount = failCount + 1
+  End If
+  s.ShowProperties
+  Set s = Nothing
+
+  ' ==================================================================
+  ' TEST 4: clsFluid.CalculateVolumetricProperties (estructura completa)
+  ' ==================================================================
+  totalTests = totalTests + 1
+  testName = "Test 4: FluidCalcResult estructura"
+  Dim f As New clsFluid
+  f.FluidType = CRD
+  f.TypicalAPI = 35.4
+
+  Dim props As FluidCalcResult
+  props = f.CalculateVolumetricProperties(95, 215)
+
+  If props.IsValid And props.CTL > 0 And props.APIObs > 0 Then
+    Debug.Print "[PASS] " & testName
+    Debug.Print "       CTL=" & FormatNumber(props.CTL, 6) & " | CTPL=" & FormatNumber(props.CTPL, 6)
+    Debug.Print "       APIObs=" & FormatNumber(props.APIObs, 2) & " | Density60F=" & FormatNumber(props.Density60F, 4)
+    passCount = passCount + 1
+  Else
+    Debug.Print "[FAIL] " & testName
+    failCount = failCount + 1
+  End If
+  Set f = Nothing
+
+  ' ==================================================================
+  ' RESUMEN
+  ' ==================================================================
+  Debug.Print "----------------------------------------------------------------------"
+  Debug.Print "RESUMEN: " & passCount & "/" & totalTests & " pasaron, " & failCount & " fallaron"
+  Debug.Print "======================================================================"
+End Sub

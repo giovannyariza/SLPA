@@ -38,6 +38,7 @@ Private baseComponent_ As clsComponent
 
 Private depth_ As Double
 Private flowRate_ As Double
+Private fluid_ As clsFluid
 
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS DE INSTANCIA DE CLASE
@@ -144,6 +145,16 @@ Public Property Let FlowRate(ByVal value As Double)
   flowRate_ = value
 End Property
 
+' -- Fluido producido por el pozo --
+Public Property Get Fluid() As clsFluid
+  If fluid_ Is Nothing Then Set fluid_ = New clsFluid
+  Set Fluid = fluid_
+End Property
+
+Public Property Set Fluid(ByVal value As clsFluid)
+  Set fluid_ = value
+End Property
+
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS PUBLICOS
 ' ---------------------------------------------------------------------------------------------------------
@@ -151,12 +162,15 @@ End Property
 Public Sub ShowProperties()
   On Error Resume Next
   Debug.Print "--- Detalle de Pozo ---"
-  Debug.Print "Tag del Pozo:" & Me.Tag
-  Debug.Print "Función o Servicio:" & Me.Service
-  Debug.Print "Profundidad:" & Me.Depth & " ft/m"
-  Debug.Print "Tasa de Flujo:" & Me.FlowRate & " BFPD/MSCFD"
-  If Not Me.Station Is Nothing Then 
-    Debug.Print "Estación Asignada:" & Me.Station.Tag
+  Debug.Print "Tag del Pozo: " & Me.Tag
+  Debug.Print "Funcion o Servicio: " & Me.Service
+  Debug.Print "Profundidad: " & Me.Depth & " ft/m"
+  Debug.Print "Tasa de Flujo: " & Me.FlowRate & " BFPD/MSCFD"
+  If Not fluid_ Is Nothing Then
+    Debug.Print "Fluido: " & fluid_.Name & " | API: " & FormatNumber(fluid_.TypicalAPI, 1)
+  End If
+  If Not Me.Station Is Nothing Then
+    Debug.Print "Estacion Asignada: " & Me.Station.Tag
   End If
   Debug.Print "------------------------"
 End Sub

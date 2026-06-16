@@ -40,6 +40,7 @@ Private baseComponent_ As clsComponent
 Private length_ As Double
 Private diameter_ As Double
 Private material_ As eMtrl
+Private fluid_ As clsFluid
 
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS DE INSTANCIA DE CLASE
@@ -156,20 +157,33 @@ Public Property Let Material(ByVal value As eMtrl)
   material_ = value
 End Property
 
+' -- Fluido que circula por la línea --
+Public Property Get Fluid() As clsFluid
+  If fluid_ Is Nothing Then Set fluid_ = New clsFluid
+  Set Fluid = fluid_
+End Property
+
+Public Property Set Fluid(ByVal value As clsFluid)
+  Set fluid_ = value
+End Property
+
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS PUBLICOS
 ' ---------------------------------------------------------------------------------------------------------
 
 Public Sub ShowProperties()
   On Error Resume Next
-  Debug.Print "--- Detalle de Línea ---"
-  Debug.Print "Tag de la línea: " & Me.Tag
+  Debug.Print "--- Detalle de Linea ---"
+  Debug.Print "Tag de la linea: " & Me.Tag
   Debug.Print "Tipo de Servicio: " & Me.Service
   Debug.Print "Longitud: " & Me.Length & " m/ft"
   Debug.Print "Diámetro: " & Me.Diameter & " in"
   Debug.Print "Material: " & Me.Material
+  If Not fluid_ Is Nothing Then
+    Debug.Print "Fluido: " & fluid_.Name & " | API: " & FormatNumber(fluid_.TypicalAPI, 1)
+  End If
   If Not Me.Station Is Nothing Then
-    Debug.Print "Estación Asignada: " & Me.Station.Tag
+    Debug.Print "Estacion Asignada: " & Me.Station.Tag
   End If
   Debug.Print "------------------------"
 End Sub
