@@ -193,7 +193,7 @@ End Property
 
 Public Property Let CoverageFactor(ByVal value As Double)
   If value <= 0 Then
-    Err.Raise vbObjectError + 524, "clsTank", "El factor de cobertura debe ser mayor a cero."
+    Err.Raise eErrors.errTankInvalidCoverageFactor, "clsTank", "El factor de cobertura debe ser mayor a cero."
   End If
   coverageFactor_ = value
 End Property
@@ -204,7 +204,7 @@ End Property
 
 Public Property Let ExpandedUncertainty(ByVal value As Double)
   If value < 0 Or value > 100 Then
-    Err.Raise vbObjectError + 525, "clsTank", "La incertidumbre expandida debe estar entre 0 y 100."
+    Err.Raise eErrors.errTankInvalidUncertainty, "clsTank", "La incertidumbre expandida debe estar entre 0 y 100."
   End If
   expandedUncertainty_ = value
 End Property
@@ -215,7 +215,7 @@ End Property
 
 Public Property Let ConfidenceLevel(ByVal value As Double)
   If value < 0 Or value > 100 Then
-    Err.Raise vbObjectError + 526, "clsTank", "El nivel de confianza debe estar entre 0 y 100."
+    Err.Raise eErrors.errTankInvalidConfidence, "clsTank", "El nivel de confianza debe estar entre 0 y 100."
   End If
   confidenceLevel_ = value
 End Property
@@ -235,7 +235,7 @@ End Property
 
 Public Property Let ShellThickness(ByVal value As Double)
   If value <= 0 Then
-    Err.Raise vbObjectError + 527, "clsTank", "El espesor del casco debe ser mayor a cero."
+    Err.Raise eErrors.errTankInvalidShellThickness, "clsTank", "El espesor del casco debe ser mayor a cero."
   End If
   shellThickness_ = value
 End Property
