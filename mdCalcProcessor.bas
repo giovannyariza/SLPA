@@ -1,4 +1,4 @@
-Attribute VB_Name = "mdCalcProcessor"
+﻿Attribute VB_Name = "mdCalcProcessor"
 Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
@@ -327,40 +327,25 @@ Private Function ProcessSingleRecord(ByRef regData As Variant, ByVal rowIdx As L
     observaciones = ""
   End If
 
-  ' Obtener configuracion del tanque
-  Dim cfg As mdTankService.TankConfig
+  ' Obtener configuracion del tanque (ahora es un objeto clsTank)
+  Dim t As clsTank
   If tankConfigs.Exists(tag) Then
-    cfg = tankConfigs(tag)
+    Set t = tankConfigs(tag)
   Else
-    cfg.IsLoaded = True
-    Set cfg.Fluid = New clsFluid
-    cfg.Fluid.FluidType = CRD
-    cfg.Fluid.TypicalAPI = 35
-    cfg.Material = MCrbn
-    cfg.Diameter = 0
-    cfg.ShellThickness = 0
-    cfg.HasFloatingRoof = False
+    ' Configuracion por defecto si no existe en tbl_Tanques
+    Set t = New clsTank
+    t.Tag = tag
+    Set t.Fluid = New clsFluid
+    t.Fluid.FluidType = CRD
+    t.Fluid.TypicalAPI = 35
+    t.Material = MCrbn
+    t.Diameter = 0
+    t.ShellThickness = 0
+    t.HasFloatingRoof = False
     Debug.Print "ADVERTENCIA: Tanque '" & tag & "' no encontrado en configuracion. Usando valores por defecto."
   End If
 
-  ' Crear tanque temporal y configurar
-  Dim t As New clsTank
-  t.Tag = tag
-  Set t.Fluid = cfg.Fluid
-  t.ReferenceAPI60F = cfg.Fluid.TypicalAPI
-  t.ReferenceAPIObs = cfg.Fluid.TypicalAPI
-  t.Material = cfg.Material
-  t.Diameter = cfg.Diameter
-  t.ShellThickness = cfg.ShellThickness
-  t.HasFloatingRoof = cfg.HasFloatingRoof
-  t.RoofWeight = cfg.RoofWeight
-  t.IsTableNetOfRoof = cfg.IsTableNetOfRoof
-  t.MinLevelDeduction = cfg.MinLevelDeduction
-  t.MaxLevelDeduction = cfg.MaxLevelDeduction
-  t.BaseDeduction = cfg.BaseDeduction
-  t.APICorrectionGT = cfg.APICorrectionGT
-  t.APICorrectionLT = cfg.APICorrectionLT
-
+  ' Asignar tabla de aforo si esta en cache
   t.StrappingTable = mdTankService.GetCachedStrappingTable(tag)
 
   ' Calcular factores
@@ -371,7 +356,7 @@ Private Function ProcessSingleRecord(ByRef regData As Variant, ByVal rowIdx As L
   If tov <= 0 Then tov = 0
 
   ctsh = t.CalculateCTSH(tempLiq, tempAmb)
-  fra = t.CalculateFRA(nivel, cfg.Fluid.TypicalAPI)
+  fra = t.CalculateFRA(nivel, t.Fluid.TypicalAPI)
   csw = t.CalculateCSW(nivelAgua)
 
   If tov > 0 Then
@@ -391,7 +376,7 @@ Private Function ProcessSingleRecord(ByRef regData As Variant, ByVal rowIdx As L
   result(4) = nivelAgua
   result(5) = tempLiq
   result(6) = tempAmb
-  result(7) = cfg.Fluid.TypicalAPI
+  result(7) = t.Fluid.TypicalAPI
   result(8) = tov
   result(9) = t.CalculateCTL(tempLiq)
   result(10) = ctsh

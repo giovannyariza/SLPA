@@ -1,4 +1,4 @@
-Attribute VB_Name = "mdTankService"
+﻿Attribute VB_Name = "mdTankService"
 Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
@@ -18,23 +18,6 @@ Private m_CachedData As Variant        ' Matriz con los volumenes (DataBodyRange
 Private m_CachedHeaders As Variant     ' Matriz con los Tags (HeaderRowRange)
 Private m_CurrentTableName As String   ' Identificador de la tabla en cache
 Private m_TankRanges As Object         ' Scripting.Dictionary: Key=Tag, Value=Array(levelMin, levelMax)
-
-' Estructura para mantener configuracion de un tanque
-Public Type TankConfig
-  Fluid As clsFluid
-  Material As eMtrl
-  Diameter As Double
-  ShellThickness As Double
-  HasFloatingRoof As Boolean
-  RoofWeight As Double
-  IsTableNetOfRoof As Boolean
-  APICorrectionGT As Double
-  APICorrectionLT As Double
-  MinLevelDeduction As Double
-  MaxLevelDeduction As Double
-  BaseDeduction As Double
-  IsLoaded As Boolean
-End Type
 
 ''' <summary>
 ''' Recupera el volumen TOV de una Tabla de Aforo (ListObject) mediante indexacion directa.
@@ -214,50 +197,7 @@ Public Function LoadTankFromTable(ByVal TankTag As String) As clsTank
   For Each lr In lo.ListRows
     tagKey = GetCellValue(lr, colMap, "Tag", "")
     If UCase(Trim(tagKey)) = UCase(Trim(TankTag)) Then
-      Dim t As New clsTank
-      t.Tag = tagKey
-      t.Description = GetCellValue(lr, colMap, "Description", "")
-      t.System = GetCellValue(lr, colMap, "System", "")
-      t.Service = GetCellValue(lr, colMap, "Service", "")
-      t.Status = GetCellValue(lr, colMap, "Status", "OP")
-
-      Set t.Fluid = New clsFluid
-      t.Fluid.Name = GetCellValue(lr, colMap, "FluidName", tagKey & "_Fluido")
-      t.Fluid.Description = GetCellValue(lr, colMap, "FluidDescription", "")
-      t.Fluid.FluidType = GetCellFluidType(lr, colMap, "FluidType", CRD)
-      t.Fluid.TypicalAPI = GetCellNumeric(lr, colMap, "API60", 35)
-      t.Fluid.TypicalViscosity = GetCellNumeric(lr, colMap, "Viscosity", 0)
-      t.Fluid.ReferenceTemperature = GetCellNumeric(lr, colMap, "ReferenceTemperature", 60)
-      t.Fluid.ReferencePressure = GetCellNumeric(lr, colMap, "ReferencePressure", 0)
-
-      t.Material = GetCellMaterial(lr, colMap, "Material", MCrbn)
-      t.ShellThickness = GetCellNumeric(lr, colMap, "ShellThickness", 0)
-      t.RoofType = GetCellValue(lr, colMap, "RoofType", "")
-      t.FloorType = GetCellValue(lr, colMap, "FloorType", "")
-
-      t.NominalCapacity = GetCellNumeric(lr, colMap, "NominalCapacity", 0)
-      t.Diameter = GetCellNumeric(lr, colMap, "Diameter", 0)
-      t.EffectiveHeight = GetCellNumeric(lr, colMap, "EffectiveHeight", 0)
-      t.ReferenceHeight = GetCellNumeric(lr, colMap, "ReferenceHeight", 0)
-      t.SafeFillLevel = GetCellNumeric(lr, colMap, "SafeFillLevel", 0)
-      t.SafePumpLevel = GetCellNumeric(lr, colMap, "SafePumpLevel", 0)
-
-      t.IsThermalInsulated = GetCellBool(lr, colMap, "IsThermalInsulated", False)
-      t.HasFloatingRoof = GetCellBool(lr, colMap, "HasFloatingRoof", False)
-      t.IsTableNetOfRoof = GetCellBool(lr, colMap, "IsTableNetOfRoof", False)
-
-      t.CriticalZoneLower = GetCellNumeric(lr, colMap, "CriticalZoneLower", 0)
-      t.CriticalZoneUpper = GetCellNumeric(lr, colMap, "CriticalZoneUpper", 0)
-      t.RoofWeight = GetCellNumeric(lr, colMap, "RoofWeight", 0)
-      t.BaseDeduction = GetCellNumeric(lr, colMap, "BaseDeduction", 0)
-      t.MinLevelDeduction = GetCellNumeric(lr, colMap, "MinLevelDeduction", 0)
-      t.MaxLevelDeduction = GetCellNumeric(lr, colMap, "MaxLevelDeduction", 0)
-      t.APICorrectionLT = GetCellNumeric(lr, colMap, "APICorrectionLT", 0)
-      t.APICorrectionGT = GetCellNumeric(lr, colMap, "APICorrectionGT", 0)
-
-      t.StrappingTable = GetCachedStrappingTable(tagKey)
-
-      Set LoadTankFromTable = t
+      Set LoadTankFromTable = BuildTankFromRow(lr, colMap, tagKey)
       Exit Function
     End If
   Next lr
@@ -271,7 +211,7 @@ ErrHandler:
 End Function
 
 ''' <summary>
-''' Carga la configuracion de tanques desde tbl_Tanques como Dictionary de TankConfig.
+''' Carga la configuracion de tanques desde tbl_Tanques como Dictionary de objetos clsTank.
 ''' Si la tabla no existe, retorna un diccionario vacio con un aviso.
 ''' </summary>
 
@@ -301,37 +241,65 @@ Public Function LoadTankConfigs() As Object
   Next lc
 
   Dim lr As ListRow
-  Dim cfg As TankConfig
   Dim tagKey As String
 
   For Each lr In lo.ListRows
     tagKey = GetCellValue(lr, colMap, "Tag", "")
     If tagKey = "" Then GoTo NextTank
 
-    cfg.IsLoaded = True
-
-    Set cfg.Fluid = New clsFluid
-    cfg.Fluid.FluidType = GetCellFluidType(lr, colMap, "FluidType", CRD)
-    cfg.Fluid.TypicalAPI = GetCellNumeric(lr, colMap, "API60", 35)
-    cfg.Fluid.ReferenceTemperature = GetCellNumeric(lr, colMap, "ReferenceTemperature", 60)
-    cfg.Fluid.ReferencePressure = GetCellNumeric(lr, colMap, "ReferencePressure", 0)
-
-    cfg.Material = GetCellMaterial(lr, colMap, "Material", MCrbn)
-    cfg.Diameter = GetCellNumeric(lr, colMap, "Diameter", 0)
-    cfg.ShellThickness = GetCellNumeric(lr, colMap, "ShellThickness", 0)
-    cfg.HasFloatingRoof = GetCellBool(lr, colMap, "HasFloatingRoof", False)
-    cfg.RoofWeight = GetCellNumeric(lr, colMap, "RoofWeight", 0)
-    cfg.IsTableNetOfRoof = GetCellBool(lr, colMap, "IsTableNetOfRoof", False)
-    cfg.APICorrectionGT = GetCellNumeric(lr, colMap, "APICorrectionGT", 0)
-    cfg.APICorrectionLT = GetCellNumeric(lr, colMap, "APICorrectionLT", 0)
-    cfg.MinLevelDeduction = GetCellNumeric(lr, colMap, "MinLevelDeduction", 0)
-    cfg.MaxLevelDeduction = GetCellNumeric(lr, colMap, "MaxLevelDeduction", 0)
-    cfg.BaseDeduction = GetCellNumeric(lr, colMap, "BaseDeduction", 0)
-
-    LoadTankConfigs(tagKey) = cfg
+    Set LoadTankConfigs(tagKey) = BuildTankFromRow(lr, colMap, tagKey)
 
 NextTank:
   Next lr
+End Function
+
+''' <summary>
+''' Helper interno: Construye un clsTank desde una fila de tabla y mapa de columnas.
+''' </summary>
+
+Private Function BuildTankFromRow(ByRef lr As ListRow, ByRef colMap As Object, ByVal tagKey As String) As clsTank
+  Dim t As New clsTank
+  t.Tag = tagKey
+  t.Description = GetCellValue(lr, colMap, "Description", "")
+  t.System = GetCellValue(lr, colMap, "System", "")
+  t.Service = GetCellValue(lr, colMap, "Service", "")
+  t.Status = GetCellValue(lr, colMap, "Status", "OP")
+
+  Set t.Fluid = New clsFluid
+  t.Fluid.Name = GetCellValue(lr, colMap, "FluidName", tagKey & "_Fluido")
+  t.Fluid.Description = GetCellValue(lr, colMap, "FluidDescription", "")
+  t.Fluid.FluidType = GetCellFluidType(lr, colMap, "FluidType", CRD)
+  t.Fluid.TypicalAPI = GetCellNumeric(lr, colMap, "API60", 35)
+  t.Fluid.TypicalViscosity = GetCellNumeric(lr, colMap, "Viscosity", 0)
+  t.Fluid.ReferenceTemperature = GetCellNumeric(lr, colMap, "ReferenceTemperature", 60)
+  t.Fluid.ReferencePressure = GetCellNumeric(lr, colMap, "ReferencePressure", 0)
+
+  t.Material = GetCellMaterial(lr, colMap, "Material", MCrbn)
+  t.ShellThickness = GetCellNumeric(lr, colMap, "ShellThickness", 0)
+  t.RoofType = GetCellValue(lr, colMap, "RoofType", "")
+  t.FloorType = GetCellValue(lr, colMap, "FloorType", "")
+
+  t.NominalCapacity = GetCellNumeric(lr, colMap, "NominalCapacity", 0)
+  t.Diameter = GetCellNumeric(lr, colMap, "Diameter", 0)
+  t.EffectiveHeight = GetCellNumeric(lr, colMap, "EffectiveHeight", 0)
+  t.ReferenceHeight = GetCellNumeric(lr, colMap, "ReferenceHeight", 0)
+  t.SafeFillLevel = GetCellNumeric(lr, colMap, "SafeFillLevel", 0)
+  t.SafePumpLevel = GetCellNumeric(lr, colMap, "SafePumpLevel", 0)
+
+  t.IsThermalInsulated = GetCellBool(lr, colMap, "IsThermalInsulated", False)
+  t.HasFloatingRoof = GetCellBool(lr, colMap, "HasFloatingRoof", False)
+  t.IsTableNetOfRoof = GetCellBool(lr, colMap, "IsTableNetOfRoof", False)
+
+  t.CriticalZoneLower = GetCellNumeric(lr, colMap, "CriticalZoneLower", 0)
+  t.CriticalZoneUpper = GetCellNumeric(lr, colMap, "CriticalZoneUpper", 0)
+  t.RoofWeight = GetCellNumeric(lr, colMap, "RoofWeight", 0)
+  t.BaseDeduction = GetCellNumeric(lr, colMap, "BaseDeduction", 0)
+  t.MinLevelDeduction = GetCellNumeric(lr, colMap, "MinLevelDeduction", 0)
+  t.MaxLevelDeduction = GetCellNumeric(lr, colMap, "MaxLevelDeduction", 0)
+  t.APICorrectionLT = GetCellNumeric(lr, colMap, "APICorrectionLT", 0)
+  t.APICorrectionGT = GetCellNumeric(lr, colMap, "APICorrectionGT", 0)
+
+  Set BuildTankFromRow = t
 End Function
 
 ''' <summary>

@@ -31,21 +31,6 @@ Option Explicit
 ' ---------------------------------------------------------------------------------------------------------
 
 ' ---------------------------------------------------------------------------------------------------------
-' ESTRUCTURA: Resultado de calculo volumetrico del fluido
-' ---------------------------------------------------------------------------------------------------------
-Public Type FluidCalcResult
-  Alpha60 As Double        ' Coeficiente de expansion termica (1/F)
-  CTL As Double            ' Factor correccion temperatura
-  CPL As Double            ' Factor correccion presion
-  CTPL As Double           ' Factor combinado (CTL * CPL)
-  Compressibility As Double ' Factor de compresibilidad escalado (Fp)
-  DensityObs As Double     ' Densidad observada a tempF (SGU)
-  APIObs As Double         ' API observado a tempF
-  Density60F As Double     ' Densidad a 60F (SGU)
-  IsValid As Boolean       ' Si el calculo fue exitoso
-End Type
-
-' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PRIVADAS (BACKING FIELDS)
 ' ---------------------------------------------------------------------------------------------------------
 Private name_ As String

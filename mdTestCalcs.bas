@@ -82,3 +82,12 @@ Private Sub Test_NewtonRaphson_Crude()
     Debug.Print "  Factor Combinado (CTPL): " & Round(fCTL * fCPL, 6)
     Debug.Print "------------------------------------------------------"
 End Sub
+
+
+Public Sub EjecutarLiquidacionDiaria()
+  mdCalcProcessor.ProcesarRegistros  ' Modo incremental
+End Sub
+
+Public Sub EjecutarLiquidacionForzada()
+  mdCalcProcessor.ProcesarRegistros ForceMode:=True  ' Recalcula todo
+End Sub
