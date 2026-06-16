@@ -212,10 +212,6 @@ Private Property Get IComponent_ComponentType() As String
   IComponent_ComponentType = Me.ComponentType
 End Property
 
-Private Property Let IComponent_ComponentType(ByVal rhs As String)
-  ' Propiedad de solo lectura programática
-End Property
-
 Private Property Get IComponent_System() As String
   IComponent_System = Me.System
 End Property

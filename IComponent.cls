@@ -11,7 +11,7 @@ Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
 ' INTERFACE: IComponent
-' DESCRIPCI�N:
+' DESCRIPCIÓN:
 '   Define el contrato para todos los componentes de una instalaci�n.
 '   Las clases como clsTank, clsWell, clsLine pueden implementar esta interfaz
 '   para permitir que sean tratadas de forma polim�rfica a trav�s de una

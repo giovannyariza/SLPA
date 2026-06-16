@@ -779,7 +779,7 @@ End Function
 ''' <param name="TmpBase">Temperatura de referencia (Defecto 60°F o 15°C).</param>
 ''' <returns>Factor de Corrección por Temperatura de la Coraza.</returns>
 
-Public Function CTSH(ByVal TmpLiq As Double, ByVal TmpAmb As Double, Optional ByVal Mtrl As eMtrl = MCrbn, Optional ByVal TmpUnits As eTmpUnits = F, Optional ByVal TmpBase As Double = 60) As Double
+Public Function CTSH(ByVal TmpLiq As Double, ByVal TmpAmb As Double, Optional ByVal Mtrl As eMtrl = MCrbn, Optional ByVal TmpUnits As eTmpUnits = F, Optional ByVal TmpBase As Double = cTEMPBASE_F) As Double
   On Error GoTo ErrHandler ' Manejador de Errores
   
   ' Validaciones de Finitud

@@ -89,15 +89,15 @@ End Sub
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES DE LA INTERFAZ ICOMPONENT (DELEGADAS AL BASE)
 ' ---------------------------------------------------------------------------------------------------------
-Public Property Get tag() As String
-  tag = baseComponent_.tag
+Public Property Get Tag() As String
+  Tag = baseComponent_.Tag
 End Property
 
-Public Property Let tag(ByVal value As String)
+Public Property Let Tag(ByVal value As String)
   If Trim(value) = "" Then
     Err.Raise eErrors.errTankEmptyTag, "clsTank", "El Tag del tanque no puede estar vacio."
   End If
-  baseComponent_.tag = UCase(Trim(value))
+  baseComponent_.Tag = UCase(Trim(value))
 End Property
 
 Public Property Get Description() As String
@@ -193,7 +193,7 @@ End Property
 
 Public Property Let CoverageFactor(ByVal value As Double)
   If value <= 0 Then
-    Err.Raise vbObjectError + 524, "clsTank", "El factor de cobertura debe ser mayor a cero."
+    Err.Raise eErrors.errTankInvalidCoverageFactor, "clsTank", "El factor de cobertura debe ser mayor a cero."
   End If
   coverageFactor_ = value
 End Property
@@ -204,7 +204,7 @@ End Property
 
 Public Property Let ExpandedUncertainty(ByVal value As Double)
   If value < 0 Or value > 100 Then
-    Err.Raise vbObjectError + 525, "clsTank", "La incertidumbre expandida debe estar entre 0 y 100."
+    Err.Raise eErrors.errTankInvalidUncertainty, "clsTank", "La incertidumbre expandida debe estar entre 0 y 100."
   End If
   expandedUncertainty_ = value
 End Property
@@ -215,7 +215,7 @@ End Property
 
 Public Property Let ConfidenceLevel(ByVal value As Double)
   If value < 0 Or value > 100 Then
-    Err.Raise vbObjectError + 526, "clsTank", "El nivel de confianza debe estar entre 0 y 100."
+    Err.Raise eErrors.errTankInvalidConfidence, "clsTank", "El nivel de confianza debe estar entre 0 y 100."
   End If
   confidenceLevel_ = value
 End Property
@@ -235,7 +235,7 @@ End Property
 
 Public Property Let ShellThickness(ByVal value As Double)
   If value <= 0 Then
-    Err.Raise vbObjectError + 527, "clsTank", "El espesor del casco debe ser mayor a cero."
+    Err.Raise eErrors.errTankInvalidShellThickness, "clsTank", "El espesor del casco debe ser mayor a cero."
   End If
   shellThickness_ = value
 End Property
@@ -467,7 +467,7 @@ End Property
 
 Public Sub ShowProperties()
   Debug.Print "--- Detalle de Tanque ---"
-  Debug.Print "Tag del Tanque: " & Me.tag
+  Debug.Print "Tag del Tanque: " & Me.Tag
   Debug.Print "Producto: " & Me.Fluid.Name
   Debug.Print "Sistema: " & Me.System
   Debug.Print "Funcion o Servicio: " & Me.Service
@@ -491,10 +491,10 @@ End Sub
 Public Function GetTOV(ByVal Level_mm As Long) As Double
   On Error GoTo ErrHandler
   If strappingTable_ Is Nothing Then Exit Function
-  GetTOV = mdTankService.GetVolumeFromTable(strappingTable_, Me.tag, Level_mm)
+  GetTOV = mdTankService.GetVolumeFromTable(strappingTable_, Me.Tag, Level_mm)
   Exit Function
 ErrHandler:
-  Debug.Print "Error en GetTOV [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en GetTOV [" & Me.Tag & "]: " & Err.Description
   GetTOV = 0
 End Function
 
@@ -513,7 +513,7 @@ Public Function CalculateCTL(ByVal tempObsF As Double, Optional ByVal API60F As 
   CalculateCTL = mdAPICalcs.CTL(apiVal, tempObsF, Me.Fluid.FluidType)
   Exit Function
 ErrHandler:
-  Debug.Print "Error en CalculateCTL [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en CalculateCTL [" & Me.Tag & "]: " & Err.Description
   CalculateCTL = 1
 End Function
 
@@ -537,7 +537,7 @@ Public Function CalculateCPL(ByVal tempObsF As Double, Optional ByVal API60F As 
   CalculateCPL = mdAPICalcs.CPL(apiVal, tempObsF, presObs, Me.Fluid.FluidType, pe)
   Exit Function
 ErrHandler:
-  Debug.Print "Error en CalculateCPL [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en CalculateCPL [" & Me.Tag & "]: " & Err.Description
   CalculateCPL = 1
 End Function
 
@@ -549,7 +549,7 @@ Public Function CalculateCTSH(ByVal tempLiqF As Double, ByVal tempAmbF As Double
   CalculateCTSH = mdAPICalcs.ctsh(tempLiqF, tempAmbF, Me.Material, f, cTEMPBASE_F)
   Exit Function
 ErrHandler:
-  Debug.Print "Error en CalculateCTSH [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en CalculateCTSH [" & Me.Tag & "]: " & Err.Description
   CalculateCTSH = 1
 End Function
 
@@ -561,7 +561,7 @@ Public Function CalculateCSW(ByVal bsw As Double) As Double
   CalculateCSW = 1 - (bsw / 100)
   Exit Function
 ErrHandler:
-  Debug.Print "Error en CalculateCSW [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en CalculateCSW [" & Me.Tag & "]: " & Err.Description
   CalculateCSW = 1
 End Function
 
@@ -584,7 +584,7 @@ Public Function CalculateGOV(ByVal Level_mm As Long, ByVal tempLiqF As Double, B
   Dim apiVal As Double
   apiVal = Me.ResolveAPI60(API60F)
   Dim fra As Double, apiObs As Double
-  apiObs = mdAPICalcs.apiObs(apiVal, tempLiqF, Me.Fluid.FluidType)
+  apiObs = mdAPICalcs.APIOBS(apiVal, tempLiqF, Me.Fluid.FluidType)
   If apiObs > 0 Then
     fra = Me.CalculateFRA(Level_mm, apiObs)
   Else
@@ -593,7 +593,7 @@ Public Function CalculateGOV(ByVal Level_mm As Long, ByVal tempLiqF As Double, B
   CalculateGOV = tov * ctsh - fra
   Exit Function
 ErrHandler:
-  Debug.Print "Error en CalculateGOV [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en CalculateGOV [" & Me.Tag & "]: " & Err.Description
   CalculateGOV = 0
 End Function
 
@@ -620,7 +620,7 @@ Public Function CalculateGSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, B
   CalculateGSV = gov * CTL * CPL
   Exit Function
 ErrHandler:
-  Debug.Print "Error en CalculateGSV [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en CalculateGSV [" & Me.Tag & "]: " & Err.Description
   CalculateGSV = 0
 End Function
 
@@ -643,7 +643,7 @@ Public Function CalculateNSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, B
   CalculateNSV = gsv * csw
   Exit Function
 ErrHandler:
-  Debug.Print "Error en CalculateNSV [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en CalculateNSV [" & Me.Tag & "]: " & Err.Description
   CalculateNSV = 0
 End Function
 
@@ -681,7 +681,7 @@ Public Function CalculateFRA(ByVal currentLevel As Double, ByVal actualAPIObs As
   If Not Me.IsTableNetOfRoof Then
     Dim DensObs As Double
     DensObs = mdConversion.CONVDENS(actualAPIObs, A2S, True)
-    totalPotentialDeduction = mdAPICalcs.fra(Me.RoofWeight, DensObs, 1)
+    totalPotentialDeduction = mdAPICalcs.FRA(Me.RoofWeight, DensObs, 1)
   Else
     Dim diffAPI As Double
     diffAPI = actualAPIObs - Me.ReferenceAPIObs
@@ -703,7 +703,7 @@ Public Function CalculateFRA(ByVal currentLevel As Double, ByVal actualAPIObs As
   Exit Function
 
 ErrHandler:
-  Debug.Print "Error en CalculateFRA [" & Me.tag & "]: " & Err.Description
+  Debug.Print "Error en CalculateFRA [" & Me.Tag & "]: " & Err.Description
   CalculateFRA = 0
 End Function
 
@@ -711,11 +711,11 @@ End Function
 ' IMPLEMENTACION EXPLICITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
 ' ---------------------------------------------------------------------------------------------------------
 Private Property Get IComponent_Tag() As String
-  IComponent_Tag = Me.tag
+  IComponent_Tag = Me.Tag
 End Property
 
 Private Property Let IComponent_Tag(ByVal rhs As String)
-  Me.tag = rhs
+  Me.Tag = rhs
 End Property
 
 Private Property Get IComponent_Description() As String
@@ -727,11 +727,7 @@ Private Property Let IComponent_Description(ByVal rhs As String)
 End Property
 
 Private Property Get IComponent_ComponentType() As String
-  IComponent_ComponentType = "Tanque"
-End Property
-
-Private Property Let IComponent_ComponentType(ByVal rhs As String)
-' Propiedad de solo lectura programatica
+  IComponent_ComponentType = Me.ComponentType
 End Property
 
 Private Property Get IComponent_System() As String
