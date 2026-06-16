@@ -160,7 +160,6 @@ Public Enum eErrors
   errTankInvalidConfidence = vbObjectError + 526
   errTankInvalidShellThickness = vbObjectError + 527
   errTankNegativeNominalCapacity = vbObjectError + 528
-  errTankNegativeDiameter = vbObjectError + 529
   ' clsWell
   errWellEmptyTag = vbObjectError + 530
   errWellEmptySystem = vbObjectError + 531

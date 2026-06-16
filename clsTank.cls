@@ -108,6 +108,14 @@ Public Property Let Description(ByVal value As String)
   baseComponent_.Description = value
 End Property
 
+Public Property Get ComponentType() As String
+  ComponentType = baseComponent_.ComponentType
+End Property
+
+Public Property Let ComponentType(ByVal value As String)
+  baseComponent_.ComponentType = value
+End Property
+
 Public Property Get System() As String
   System = baseComponent_.System
 End Property
@@ -502,15 +510,13 @@ End Function
 ''' Calcula el Factor de Correccion por Temperatura del Liquido (CTL).
 ''' Si API60F se omite, usa el API del fluido contenido.
 ''' </summary>
-Public Function CalculateCTL(ByVal tempObsF As Double, Optional ByVal API60F As Double = 0) As Double
+Public Function CalculateCTL(ByVal tempObsF As Double, ByVal API60F As Double) As Double
   On Error GoTo ErrHandler
-  Dim apiVal As Double
-  apiVal = Me.ResolveAPI60(API60F)
-  If apiVal <= -cAPI_B Then
+  If API60F <= -cAPI_B Then
     CalculateCTL = 1
     Exit Function
   End If
-  CalculateCTL = mdAPICalcs.CTL(apiVal, tempObsF, Me.Fluid.FluidType)
+  CalculateCTL = mdAPICalcs.CTL(API60F, tempObsF, Me.Fluid.FluidType)
   Exit Function
 ErrHandler:
   Debug.Print "Error en CalculateCTL [" & Me.Tag & "]: " & Err.Description
@@ -521,20 +527,18 @@ End Function
 ''' Calcula el Factor de Correccion por Presion del Liquido (CPL).
 ''' Si no hay presion, retorna 1 (sin correccion).
 ''' </summary>
-Public Function CalculateCPL(ByVal tempObsF As Double, Optional ByVal API60F As Double = 0, _
+Public Function CalculateCPL(ByVal tempObsF As Double, ByVal API60F As Double, _
   Optional ByVal presObs As Double = 0, Optional ByVal pe As Double = 0) As Double
   On Error GoTo ErrHandler
   If presObs <= 0 Then
     CalculateCPL = 1
     Exit Function
   End If
-  Dim apiVal As Double
-  apiVal = Me.ResolveAPI60(API60F)
-  If apiVal <= -cAPI_B Then
+  If API60F <= -cAPI_B Then
     CalculateCPL = 1
     Exit Function
   End If
-  CalculateCPL = mdAPICalcs.CPL(apiVal, tempObsF, presObs, Me.Fluid.FluidType, pe)
+  CalculateCPL = mdAPICalcs.CPL(API60F, tempObsF, presObs, Me.Fluid.FluidType, pe)
   Exit Function
 ErrHandler:
   Debug.Print "Error en CalculateCPL [" & Me.Tag & "]: " & Err.Description
@@ -571,7 +575,7 @@ End Function
 ''' Si API60F se omite, usa el API del fluido contenido.
 ''' </summary>
 Public Function CalculateGOV(ByVal Level_mm As Long, ByVal tempLiqF As Double, ByVal tempAmbF As Double, _
-  Optional ByVal API60F As Double = 0) As Double
+  ByVal API60F As Double) As Double
   On Error GoTo ErrHandler
   Dim tov As Double
   tov = Me.GetTOV(Level_mm)
@@ -581,10 +585,8 @@ Public Function CalculateGOV(ByVal Level_mm As Long, ByVal tempLiqF As Double, B
   End If
   Dim ctsh As Double
   ctsh = Me.CalculateCTSH(tempLiqF, tempAmbF)
-  Dim apiVal As Double
-  apiVal = Me.ResolveAPI60(API60F)
   Dim fra As Double, apiObs As Double
-  apiObs = mdAPICalcs.APIOBS(apiVal, tempLiqF, Me.Fluid.FluidType)
+  apiObs = mdAPICalcs.APIOBS(API60F, tempLiqF, Me.Fluid.FluidType)
   If apiObs > 0 Then
     fra = Me.CalculateFRA(Level_mm, apiObs)
   Else
@@ -603,7 +605,7 @@ End Function
 ''' Si API60F se omite, usa el API del fluido contenido.
 ''' </summary>
 Public Function CalculateGSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, ByVal tempAmbF As Double, _
-  Optional ByVal API60F As Double = 0, Optional ByVal presObs As Double = 0, Optional ByVal pe As Double = 0) As Double
+  ByVal API60F As Double, Optional ByVal presObs As Double = 0, Optional ByVal pe As Double = 0) As Double
   On Error GoTo ErrHandler
   Dim gov As Double
   gov = Me.CalculateGOV(Level_mm, tempLiqF, tempAmbF, API60F)
@@ -611,12 +613,10 @@ Public Function CalculateGSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, B
     CalculateGSV = 0
     Exit Function
   End If
-  Dim apiVal As Double
-  apiVal = Me.ResolveAPI60(API60F)
   Dim CTL As Double
-  CTL = Me.CalculateCTL(tempLiqF, apiVal)
+  CTL = Me.CalculateCTL(tempLiqF, API60F)
   Dim CPL As Double
-  CPL = Me.CalculateCPL(tempLiqF, apiVal, presObs, pe)
+  CPL = Me.CalculateCPL(tempLiqF, API60F, presObs, pe)
   CalculateGSV = gov * CTL * CPL
   Exit Function
 ErrHandler:
@@ -630,7 +630,7 @@ End Function
 ''' Si API60F se omite, usa el API del fluido contenido.
 ''' </summary>
 Public Function CalculateNSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, ByVal tempAmbF As Double, _
-  Optional ByVal API60F As Double = 0, Optional ByVal bsw As Double = 0) As Double
+  ByVal API60F As Double, Optional ByVal bsw As Double = 0) As Double
   On Error GoTo ErrHandler
   Dim gsv As Double
   gsv = Me.CalculateGSV(Level_mm, tempLiqF, tempAmbF, API60F)

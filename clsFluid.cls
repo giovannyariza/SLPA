@@ -363,7 +363,7 @@ Public Sub ShowProperties()
   Debug.Print " Viscosidad: " & typicalViscosity_ & " cSt"
   Debug.Print " Alfa60: " & FormatNumber(Me.Alpha60, 8) & " 1/F"
   Debug.Print " Ref. Temp/Pres: " & referenceTemperature_ & " F / " & referencePressure_ & " psi"
-  Debug.Print " Valido para custodia: " & IIf(Me.ValidateForCustodyTransfer(errM), "Si", "No - " & errM)
+  ' Debug.Print " Valido para custodia: " & IIf(Me.ValidateForCustodyTransfer(errM), "Si", "No - " & errM)
   Debug.Print "------------------------------"
 End Sub
 

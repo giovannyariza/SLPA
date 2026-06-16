@@ -43,8 +43,8 @@ End Property
 
 Public Property Get ComponentType() As String
 End Property
-Public Property Let ComponentType(ByVal value As String)
-End Property
+' Public Property Let ComponentType(ByVal value As String)
+' End Property
 
 Public Property Get System() As String
 End Property

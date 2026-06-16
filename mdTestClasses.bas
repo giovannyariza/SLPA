@@ -52,7 +52,7 @@ Public Sub EjecutarPrueba_Infraestructura()
   tanqueEspecializado.Service = "Almacenamiento"
   tanqueEspecializado.Status = "MT" ' En mantenimiento
   ' Propiedades exclusivas de la clase concreta clsTank
-  tanqueEspecializado.Capacity = 15000 ' Capacidad en Barriles (Bbls)
+  tanqueEspecializado.NominalCapacity = 15000 ' Capacidad en Barriles (Bbls)
   
   ' 6. ASOCIACIÓN BIDIRECCIONAL (Adición de componentes a la Estación)
   ' Pasamos las instancias a través del contrato polimórfico IComponent
@@ -121,8 +121,8 @@ Public Sub CalcularInventarioActual()
     .RoofWeight = 3200
     .IsTableNetOfRoof = True ' Tabla contempla el ajuste
     .HasFloatingRoof = True
-    .TableRefAPI = 76.3
-    .TableBaseDeduction = 29.64
+    .ReferenceAPI60F = 76.3
+    .BaseDeduction = 29.64
     .APICorrectionGT = -0.14
     .APICorrectionLT = 0.14
     .MinLevelDeduction = 1610
@@ -137,7 +137,7 @@ Public Sub CalcularInventarioActual()
   
   ' La magia del objeto:
   Dim vcfMembrana As Double
-  vcfMembrana = ATK7210.GetDynamicFRA(nivelMedido, apiObs)
+  vcfMembrana = ATK7210.CalculateFRA(nivelMedido, apiObs)
   
   Debug.Print "Deducción Final Membrana: " & mdAPICalcs.ROUNDAPI(vcfMembrana, 2, 1) & " Bbls"
 End Sub
@@ -162,7 +162,7 @@ Public Sub TestTankConvenienceMethods()
     .Diameter = 30473        ' mm
     .Material = MCrbn        ' Acero al carbono
     .ShellThickness = 0.25   ' pulgadas
-    .FluidType = REF         ' Crudo
+    .Fluid.FluidType = REF         ' Crudo
     .ReferenceAPI60F = 76.3    ' API a 60F
     .ReferenceAPIObs = 76.3
     .IsThermalInsulated = False
@@ -414,11 +414,13 @@ Public Sub TestFluidIntegration()
 
   Dim f1 As New clsFluid
   f1.Name = "Crudo Pesado"
+  f1.FluidType = CRD
   f1.TypicalAPI = 18
   s.AddReferenceFluid f1
 
   Dim f2 As New clsFluid
   f2.Name = "Crudo Liviano"
+  f2.FluidType = REF
   f2.TypicalAPI = 38
   s.AddReferenceFluid f2
 
