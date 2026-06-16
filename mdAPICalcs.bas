@@ -832,7 +832,7 @@ Public Function FRA(ByVal RoofWeight As Double, ByVal Dens60 As Double, ByVal CT
   
   If DensObs > 0.001 Then
     ' FRA = Peso / Densidad_Observada
-    FRA = RoofWeight / (DensObs * 350.507)
+    FRA = RoofWeight / DensObs
   Else
     FRA = 0
   End If
