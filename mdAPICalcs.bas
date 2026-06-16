@@ -937,3 +937,64 @@ ErrHandler:
   Debug.Print "Error en CBHP: " & Err.Description
   CBHP = 1
 End Function
+
+' ---------------------------------------------------------------------------------------------------------
+' FUNCIONES DE CONTRACCIÓN VOLUMÉTRICA (SHRINKAGE)
+' Cálculo de encogimiento en mezclas de hidrocarburos livianos con crudos pesados.
+' ---------------------------------------------------------------------------------------------------------
+
+''' <summary>
+''' Calcula el porcentaje de encogimiento (shrinkage) en mezclas de hidrocarburos livianos con crudos pesados.
+''' Basado en correlaciones empíricas de la industria petrolera.
+''' </summary>
+''' <param name="X">Concentración en volumen del componente liviano [%]</param>
+''' <param name="APILight">Gravedad API del componente liviano</param>
+''' <param name="APIHeavy">Gravedad API del componente pesado/crudo</param>
+''' <returns>Porcentaje de encogimiento [%]. Retorna 0 si hay error.</returns>
+
+Public Function SHRINK(ByVal X As Double, ByVal APILight As Double, ByVal APIHeavy As Double) As Double
+  On Error GoTo ErrHandler
+
+  ' Validaciones de Integridad y Finitud
+  If Not mdHelpers.IsFinite(X) Or Not mdHelpers.IsFinite(APILight) Or Not mdHelpers.IsFinite(APIHeavy) Then GoTo ErrHandler
+
+  ' Validaciones de Rangos Físicos
+  If X < 0 Or X > 100 Then GoTo ErrHandler
+  If APILight <= 0 Or APIHeavy <= 0 Then GoTo ErrHandler
+
+  ' Variables para coeficientes
+  Dim C As Double, Y As Double, Z As Double
+
+  ' Selección de coeficientes según API del componente pesado
+  If APIHeavy <= 10.8 Then
+    C = 1.532E-08
+    Y = 1.6769
+    Z = 1.7841
+  ElseIf APIHeavy <= 12# Then
+    C = 2.8822E-07
+    Y = 1.222
+    Z = 1.4731
+  Else ' APIHeavy > 12.0
+    C = 4.2178E-07
+    Y = 1.1812
+    Z = 1.4151
+  End If
+
+  ' Cálculo del encogimiento
+  ' Formula: encogimiento = C * X * (100 - X)^Y * (API_liviano - API_pesado)^Z
+  Dim term1 As Double, term2 As Double, term3 As Double
+  
+  term1 = C * X
+  term2 = (100 - X) ^ Y
+  term3 = (APILight - APIHeavy) ^ Z
+
+  SHRINK = term1 * term2 * term3
+
+  ' Validación de Finitud
+  If Not mdHelpers.IsFinite(SHRINK) Then SHRINK = 0
+  Exit Function
+
+ErrHandler:
+  Debug.Print "Error en SHRINK (X: " & X & ", APILight: " & APILight & ", APIHeavy: " & APIHeavy & "): " & Err.Description
+  SHRINK = 0 ' Retorno de seguridad sin corrección
+End Function
