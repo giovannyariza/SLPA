@@ -11,9 +11,9 @@ Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
 ' CLASE: clsLine
-' DESCRIPCIÓN:
-' Representa una Línea de Flujo / Tubería.
-' Utiliza composición con clsComponent para heredar atributos comunes y aplica la interfaz IComponent para
+' DESCRIPCION:
+' Representa una Linea de Flujo / Tuberia.
+' Utiliza composicion con clsComponent para heredar atributos comunes y aplica la interfaz IComponent para
 ' permitir el polimorfismo.
 '
 ' DEPENDENCIAS:
@@ -21,12 +21,12 @@ Option Explicit
 '   - clsComponent.cls: Para la base de propiedades comunes.
 '
 ' PROPIEDADES PRINCIPALES:
-'   - Length (Double): Longitud de la línea (metros o pies).
-'   - Diameter (Double): Diámetro nominal o interno (pulgadas).
-'   - Material (String): Material de construcción (ej: Acero al Carbono, HDPE).
+'   - Length (Double): Longitud de la linea (metros o pies).
+'   - Diameter (Double): Diametro nominal o interno (pulgadas).
+'   - Material (String): Material de construccion (ej: Acero al Carbono, HDPE).
 '
 ' METODOS:
-'   - ShowProperties: Muestra las propiedades de la línea.
+'   - ShowProperties: Muestra las propiedades del Pozo.
 '
 Implements IComponent
 
@@ -36,13 +36,15 @@ Private baseComponent_ As clsComponent
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PRIVADAS (BACKING FIELDS)
 ' ---------------------------------------------------------------------------------------------------------
+
 Private length_ As Double
 Private diameter_ As Double
 Private material_ As eMtrl
 
 ' ---------------------------------------------------------------------------------------------------------
-' MÉTODOS DE INSTANCIA DE CLASE
+' METODOS DE INSTANCIA DE CLASE
 ' ---------------------------------------------------------------------------------------------------------
+
 Private Sub Class_Initialize()
   Set baseComponent_ = New clsComponent
   baseComponent_.ComponentType = "Línea" ' Inicializar el componente base y definir el tipo
@@ -55,6 +57,7 @@ End Sub
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES DE LA INTERFAZ ICOMPONENT (DELEGADAS AL BASE)
 ' ---------------------------------------------------------------------------------------------------------
+
 Public Property Get Tag() As String
   Tag = baseComponent_.Tag
 End Property
@@ -120,8 +123,9 @@ Public Property Set Station(ByVal value As clsStation)
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
-' PROPIEDADES ESPECÍFICAS DE LA LÍNEA
+' PROPIEDADES ESPECIFICAS DE LA LINEA
 ' ---------------------------------------------------------------------------------------------------------
+
 Public Property Get Length() As Double
   Length = length_
 End Property
@@ -153,10 +157,11 @@ Public Property Let Material(ByVal value As eMtrl)
 End Property
 
 ' ---------------------------------------------------------------------------------------------------------
-' MÉTODOS PÚBLICOS
+' METODOS PUBLICOS
 ' ---------------------------------------------------------------------------------------------------------
+
 Public Sub ShowProperties()
-' Método para mostrar propiedades de la línea (útil para depuración)
+  On Error Resume Next
   Debug.Print "--- Detalle de Línea ---"
   Debug.Print "Tag de la línea: " & Me.Tag
   Debug.Print "Tipo de Servicio: " & Me.Service
@@ -170,8 +175,9 @@ Public Sub ShowProperties()
 End Sub
 
 ' ---------------------------------------------------------------------------------------------------------
-' IMPLEMENTACIÓN EXPLÍCITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
+' IMPLEMENTACION EXPLICITA Y MANDATORIA DE LA INTERFAZ ICOMPONENT
 ' ---------------------------------------------------------------------------------------------------------
+
 Private Property Get IComponent_Tag() As String
   IComponent_Tag = Me.Tag
 End Property

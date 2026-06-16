@@ -24,12 +24,8 @@ Option Explicit
 '
 ' METODOS:
 '   - ShowProperties: Muestra las propiedades del Fluido.
-'   - GetFluidTypeName: Retorna el nombre legible del tipo de liquido.
-'   - CalculateCTL/CSW/CPL/Alpha60/FP: Factores de correccion.
-'   - DensityAtTemp/APIAtTemp: Propiedades a condiciones observadas.
-'   - IsValid/ValidateForCustodyTransfer: Validaciones.
-' ---------------------------------------------------------------------------------------------------------
-
+'   - GetFluidTypeName: Retorna el nombre legible del tipo de líquido basado en el Enum eTypeLiq.
+'
 ' ---------------------------------------------------------------------------------------------------------
 ' PROPIEDADES PRIVADAS (BACKING FIELDS)
 ' ---------------------------------------------------------------------------------------------------------
@@ -75,6 +71,10 @@ Public Property Let FluidType(ByVal value As eTypeLiq)
   cachedAlpha60Valid_ = False
 End Property
 
+''' <summary>
+''' Gravedad API del fluido. Al establecer este valor, se actualiza automáticamente la Densidad Típica.
+''' </summary>
+
 ' -- Gravedad API del fluido. Al establecer, se actualiza automaticamente la Densidad Tipica. --
 Public Property Get TypicalAPI() As Double
   TypicalAPI = typicalAPI_
@@ -88,6 +88,10 @@ Public Property Let TypicalAPI(ByVal value As Double)
   typicalDensity_ = mdConversion.CONVDENS(value, A2S, True)
   cachedAlpha60Valid_ = False
 End Property
+
+''' <summary>
+''' Densidad Relativa (SGU). Al establecer este valor, se actualiza automáticamente la Gravedad API.
+''' </summary>
 
 ' -- Densidad Relativa (SGU). Al establecer, se actualiza automaticamente la Gravedad API. --
 Public Property Get TypicalDensity() As Double
@@ -348,9 +352,8 @@ End Function
 ' ---------------------------------------------------------------------------------------------------------
 ' METODOS DE VISUALIZACION
 ' ---------------------------------------------------------------------------------------------------------
-
 Public Sub ShowProperties()
-  Dim errM As String
+' Método para mostrar propiedades del fluido (útil para depuración)
   Debug.Print "--- Propiedades del Fluido ---"
   Debug.Print " Nombre: " & name_
   Debug.Print " Tipo: " & Me.GetFluidTypeName
@@ -364,6 +367,9 @@ Public Sub ShowProperties()
   Debug.Print "------------------------------"
 End Sub
 
+''' <summary>
+''' Retorna el nombre legible del tipo de líquido basado en el Enum eTypeLiq.
+''' </summary>
 Public Function GetFluidTypeName() As String
   Select Case fluidType_
     Case CRD: GetFluidTypeName = "Crudo (Crude Oil)"

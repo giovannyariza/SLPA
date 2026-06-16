@@ -2,21 +2,21 @@ Attribute VB_Name = "mdHelpers"
 Option Explicit
 
 ' ---------------------------------------------------------------------------------------------------------
-' MÓDULO AUXILIAR: mdHelpers
-' DESCRIPCIÓN:
-' Contiene funciones utilitarias y algorítmicas de soporte matemático y de validación para
-' garantizar la integridad de los datos en los módulos de cálculo.
+' MODULO AUXILIAR: mdHelpers
+' DESCRIPCION:
+' Contiene funciones utilitarias y algoritmicas de soporte matematico y de validacion para
+' garantizar la integridad de los datos en los modulos de calculo.
 ' ---------------------------------------------------------------------------------------------------------
 
 ''' <summary>
-''' Verifica si un número de punto flotante (Double) es finito.
-''' Un número finito no es infinito positivo o negativo, ni es una indeterminacion matematica (NaN).
+''' Verifica si un numero de punto flotante (Double) es finito.
+''' Un numero finito no es infinito positivo o negativo, ni es una indeterminacion matematica (NaN).
 ''' </summary>
-''' <param name="Value">El valor numérico de tipo Double a evaluar.</param>
-''' <returns>True si el número es completamente computable; False si es NaN o Infinito.</returns>
+''' <param name="Value">El valor numerico de tipo Double a evaluar.</param>
+''' <returns>True si el numero es completamente computable; False si es NaN o Infinito.</returns>
 
 Public Function IsFinite(ByVal Value As Double) As Boolean
-  ' Manejo estructural de errores para evitar caídas imprevistas por desbordamientos de memoria de bajo nivel
+  ' Manejo estructural de errores para evitar caidas imprevistas por desbordamientos de memoria de bajo nivel
   On Error GoTo ErrHandler
 
   ' Logica matematica optima y de alta velocidad:
@@ -32,16 +32,16 @@ ErrHandler:
 End Function
 
 ''' <summary>
-''' Función extendida corporativa: Valida si una dimensión fisica (diametro, longitud, etc.)
-''' es un número finito, real y estrictamente mayor que cero.
+''' Funcion extendida corporativa: Valida si una dimension fisica (diametro, longitud, etc.)
+''' es un numero finito, real y estrictamente mayor que cero.
 ''' </summary>
-''' <param name="Value">El valor físico a evaluar.</param>
-''' <returns>True si la dimensión es matemáticamente válida para cálculos de ingeniería.</returns>
+''' <param name="Value">El valor fisico a evaluar.</param>
+''' <returns>True si la dimension es matematicamente valida para calculos de ingenieria.</returns>
 
 Public Function IsValidDimension(ByVal Value As Double) As Boolean
   On Error GoTo ErrHandler
 
-  ' Combina la validación de finitud matemática con la restricción física del negocio.
+  ' Combina la validacion de finitud matematica con la restriccion fisica del negocio
   If IsFinite(Value) Then
     IsValidDimension = (Value > 0)
   Else
@@ -58,8 +58,8 @@ End Function
 ''' Verifica si un valor se encuentra dentro de un rango cerrado [Min, Max].
 ''' </summary>
 ''' <param name="Value">Valor a evaluar.</param>
-''' <param name="Min">Límite inferior del rango.</param>
-''' <param name="Max">Límite superior del rango.</param>
+''' <param name="Min">Limite inferior del rango.</param>
+''' <param name="Max">Limite superior del rango.</param>
 ''' <returns>True si Min <= Value <= Max.</returns>
 
 Public Function IsInRange(ByVal Value As Double, ByVal Min As Double, ByVal Max As Double) As Boolean
@@ -78,13 +78,13 @@ ErrHandler:
 End Function
 
 ''' <summary>
-''' Valida si una gravedad API es físicamente posible ( > -131.5 ) y opcionalmente
-''' está dentro del rango normativo definido en mdGlobals para crudo/refinados o lubricantes.
+''' Valida si una gravedad API es fisicamente posible ( > -131.5 ) y opcionalmente
+''' esta dentro del rango normativo definido en mdGlobals para crudo/refinados o lubricantes.
 ''' </summary>
 ''' <param name="API">Valor de gravedad API a validar.</param>
 ''' <param name="TypeLiq">Tipo de liquido (CRD, REF, LUB) para elegir el rango normativo.</param>
-''' <param name="CheckNormative">Si True (default), también valida el rango normativo API MPMS.</param>
-''' <returns>True si el API es válido; False en caso contrario.</returns>
+''' <param name="CheckNormative">Si True (default), tambien valida el rango normativo API MPMS.</param>
+''' <returns>True si el API es valido; False en caso contrario.</returns>
 
 Public Function IsValidAPI(ByVal API As Double, Optional ByVal TypeLiq As eTypeLiq = CRD, Optional ByVal CheckNormative As Boolean = True) As Boolean
   On Error GoTo ErrHandler
@@ -94,13 +94,13 @@ Public Function IsValidAPI(ByVal API As Double, Optional ByVal TypeLiq As eTypeL
     Exit Function
   End If
 
-  ' Límite matemático de la fórmula API
+  ' Limite matematico de la formula API
   If API <= -cAPI_B Then
     IsValidAPI = False
     Exit Function
   End If
 
-  ' Rango normativo según tipo de líquido (opcional)
+  ' Rango normativo segun tipo de liquido (opcional)
   If CheckNormative Then
     Select Case TypeLiq
       Case CRD, REF
@@ -121,11 +121,11 @@ ErrHandler:
 End Function
 
 ''' <summary>
-''' Valida si una temperatura está dentro de los rangos aceptables por la norma API MPMS 11.1.
+''' Valida si una temperatura esta dentro de los rangos aceptables por la norma API MPMS 11.1.
 ''' Asume Fahrenheit como unidad de entrada.
 ''' </summary>
 ''' <param name="TempF">Temperatura en Fahrenheit a validar.</param>
-''' <returns>True si la temperatura está dentro del rango válido.</returns>
+''' <returns>True si la temperatura esta dentro del rango valido.</returns>
 
 Public Function IsValidTemperature(ByVal TempF As Double) As Boolean
   On Error GoTo ErrHandler
@@ -144,20 +144,20 @@ End Function
 
 ''' <summary>
 ''' Convierte un Variant (Rango de Excel o Array) en un arreglo unidimensional de Doubles base 1.
-''' Funcion genérica para procesar datos provenientes de hojas de calculo.
+''' Funcion generica para procesar datos provenientes de hojas de calculo.
 ''' </summary>
 ''' <param name="InputVar">Rango de Excel o Variant/Array de entrada.</param>
-''' <returns>Arreglo de Double base 1. Arreglo vacío si no hay datos numéricos.</returns>
+''' <returns>Arreglo de Double base 1. Arreglo vacio si no hay datos numericos.</returns>
 
 Public Function ConvertToDoubleArray(ByVal InputVar As Variant) As Double()
   Dim res() As Double
   Dim cell As Variant
   Dim count As Long: count = 0
 
-  ' Determinar tamaño
+  ' Determinar tamano
   If TypeName(InputVar) = "Range" Or IsArray(InputVar) Then
     ' Redimensionar temporalmente
-    ReDim res(1 To 10000) ' Límite arbitrario para lotes de fiscalización
+    ReDim res(1 To 10000) ' Limite arbitrario para lotes de fiscalizacion
 
     For Each cell In InputVar
       If IsNumeric(cell) And Not IsEmpty(cell) Then
@@ -166,7 +166,7 @@ Public Function ConvertToDoubleArray(ByVal InputVar As Variant) As Double()
       End If
     Next cell
 
-    ' Ajustar al tamaño real
+    ' Ajustar al tamano real
     If count > 0 Then
       ReDim Preserve res(1 To count)
     Else
