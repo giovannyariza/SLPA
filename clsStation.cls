@@ -219,9 +219,9 @@ Public Sub ShowProperties()
   Debug.Print " Ubicacion: " & Me.Location
   Debug.Print " Componentes: " & Me.Components.Count
   Debug.Print " Fluidos de Referencia: " & Me.ReferenceFluids.Count
-  Dim f As Variant
-  For Each f In Me.ReferenceFluids
-    Debug.Print "   - " & f.Name & " (API: " & FormatNumber(f.TypicalAPI, 1) & ")"
-  Next f
+  Dim fluidItem As Variant
+  For Each fluidItem In Me.ReferenceFluids
+    Debug.Print "   - " & fluidItem.Name & " (API: " & FormatNumber(fluidItem.TypicalAPI, 1) & ")"
+  Next fluidItem
   Debug.Print "----------------------------------"
 End Sub

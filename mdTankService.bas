@@ -80,16 +80,16 @@ End Function
 ''' con datos efectivos para cada tanque.
 ''' </summary>
 
-Private Sub LoadTableToCache(ByVal lo As ListObject)
-  m_CurrentTableName = lo.Name
-  m_CachedHeaders = lo.HeaderRowRange.Value
+Private Sub LoadTableToCache(ByVal targetTable As ListObject)
+  m_CurrentTableName = targetTable.Name
+  m_CachedHeaders = targetTable.HeaderRowRange.Value
 
-  If lo.ListRows.Count > 0 Then
-    m_CachedData = lo.DataBodyRange.Value
-    Debug.Print "TankService: Cache actualizado - Tabla '" & lo.Name & "' (" & UBound(m_CachedData, 1) & " filas)."
+  If targetTable.ListRows.Count > 0 Then
+    m_CachedData = targetTable.DataBodyRange.Value
+    Debug.Print "TankService: Cache actualizado - Tabla '" & targetTable.Name & "' (" & UBound(m_CachedData, 1) & " filas)."
   Else
     m_CachedData = Empty
-    Debug.Print "TankService: Cache actualizado - Tabla '" & lo.Name & "' (sin datos)."
+    Debug.Print "TankService: Cache actualizado - Tabla '" & targetTable.Name & "' (sin datos)."
   End If
 
   ' ESCANEO DE RANGOS POR TANQUE
@@ -103,19 +103,19 @@ Private Sub LoadTableToCache(ByVal lo As ListObject)
   Dim totalCols As Long
   totalCols = UBound(m_CachedData, 2)
 
-  Dim c As Long, r As Long
+  Dim columnIndex As Long, rowIndex As Long, rowIndexFromBottom As Long
   Dim tagName As String
   Dim foundMin As Long, foundMax As Long
   Dim hasData As Boolean
 
-  For c = 1 To totalCols
+  For columnIndex = 1 To totalCols
     foundMin = -1
     foundMax = -1
     hasData = False
 
     ' Obtener el nombre del tanque desde los encabezados
     If IsArray(m_CachedHeaders) Then
-      tagName = CStr(m_CachedHeaders(1, c))
+      tagName = CStr(m_CachedHeaders(1, columnIndex))
     Else
       tagName = CStr(m_CachedHeaders)
     End If
@@ -123,22 +123,22 @@ Private Sub LoadTableToCache(ByVal lo As ListObject)
     If Trim(tagName) = "" Then GoTo NextCol
 
     ' Recorrer filas de arriba hacia abajo para encontrar el primer dato
-    For r = 1 To totalRows
-      If Not IsEmpty(m_CachedData(r, c)) And IsNumeric(m_CachedData(r, c)) And m_CachedData(r, c) <> 0 Then
-        foundMin = r - 1  ' Convertir índice de matriz (base 1) a nivel mm (base 0)
+    For rowIndex = 1 To totalRows
+      If Not IsEmpty(m_CachedData(rowIndex, columnIndex)) And IsNumeric(m_CachedData(rowIndex, columnIndex)) And m_CachedData(rowIndex, columnIndex) <> 0 Then
+        foundMin = rowIndex - 1  ' Convertir índice de matriz (base 1) a nivel mm (base 0)
         hasData = True
         Exit For
       End If
-    Next r
+    Next rowIndex
 
     ' Recorrer filas de abajo hacia arriba para encontrar el último dato
     If hasData Then
-      For r = totalRows To 1 Step -1
-        If Not IsEmpty(m_CachedData(r, c)) And IsNumeric(m_CachedData(r, c)) And m_CachedData(r, c) <> 0 Then
-          foundMax = r - 1
+      For rowIndexFromBottom = totalRows To 1 Step -1
+        If Not IsEmpty(m_CachedData(rowIndexFromBottom, columnIndex)) And IsNumeric(m_CachedData(rowIndexFromBottom, columnIndex)) And m_CachedData(rowIndexFromBottom, columnIndex) <> 0 Then
+          foundMax = rowIndexFromBottom - 1
           Exit For
         End If
-      Next r
+      Next rowIndexFromBottom
     End If
 
     ' Registrar el rango si se encontraron datos
@@ -147,7 +147,7 @@ Private Sub LoadTableToCache(ByVal lo As ListObject)
     End If
 
 NextCol:
-  Next c
+  Next columnIndex
 
   Debug.Print "TankService: Cache actualizado - Tabla '" & m_CurrentTableName & "' (" & totalRows & " filas, " & m_TankRanges.Count & " tanques con datos)."
 End Sub
@@ -175,18 +175,18 @@ End Sub
 Public Function LoadTankFromTable(ByVal TankTag As String) As clsTank
   On Error GoTo ErrHandler
 
-  Dim lo As ListObject
+  Dim tankTable As ListObject
   On Error Resume Next
-  Set lo = ThisWorkbook.Sheets(TANQUES_SHEET).ListObjects(TANQUES_TABLE)
+  Set tankTable = ThisWorkbook.Sheets("cnf_Tanques").ListObjects("tbl_Tanques")
   On Error GoTo 0
 
-  If lo Is Nothing Then
-    Debug.Print "ERROR: No se encontro " & TANQUES_TABLE
+  If tankTable Is Nothing Then
+    Debug.Print "ERROR: No se encontro " & "tbl_Tanques"
     Exit Function
   End If
 
-  If lo.ListRows.Count = 0 Then
-    Debug.Print "ADVERTENCIA: " & TANQUES_TABLE & " esta vacia."
+  If tankTable.ListRows.Count = 0 Then
+    Debug.Print "ADVERTENCIA: " & "tbl_Tanques" & " esta vacia."
     Exit Function
   End If
 
@@ -194,22 +194,22 @@ Public Function LoadTankFromTable(ByVal TankTag As String) As clsTank
   Set colMap = CreateObject("Scripting.Dictionary")
   colMap.CompareMode = 1
 
-  Dim lc As ListColumn
-  For Each lc In lo.ListColumns
-    colMap(lc.Name) = lc.Index
-  Next lc
+  Dim tableColumn As ListColumn
+  For Each tableColumn In tankTable.ListColumns
+    colMap(tableColumn.Name) = tableColumn.Index
+  Next tableColumn
 
-  Dim lr As ListRow
+  Dim tableRow As ListRow
   Dim tagKey As String
-  For Each lr In lo.ListRows
-    tagKey = GetCellValue(lr, colMap, "Tag", "")
+  For Each tableRow In tankTable.ListRows
+    tagKey = GetCellValue(tableRow, colMap, "Tag", "")
     If UCase(Trim(tagKey)) = UCase(Trim(TankTag)) Then
-      Set LoadTankFromTable = BuildTankFromRow(lr, colMap, tagKey)
+      Set LoadTankFromTable = BuildTankFromRow(tableRow, colMap, tagKey)
       Exit Function
     End If
-  Next lr
+  Next tableRow
 
-  Debug.Print "ADVERTENCIA: Tanque '" & TankTag & "' no encontrado en " & TANQUES_TABLE
+  Debug.Print "ADVERTENCIA: Tanque '" & TankTag & "' no encontrado en " & "tbl_Tanques"
   Exit Function
 
 ErrHandler:
@@ -226,87 +226,87 @@ Public Function LoadTankConfigs() As Object
   Set LoadTankConfigs = CreateObject("Scripting.Dictionary")
   LoadTankConfigs.CompareMode = 1
 
-  Dim lo As ListObject
+  Dim tankTable As ListObject
   On Error Resume Next
-  Set lo = ThisWorkbook.Sheets(TANQUES_SHEET).ListObjects(TANQUES_TABLE)
+  Set tankTable = ThisWorkbook.Sheets("cnf_Tanques").ListObjects("tbl_Tanques")
   On Error GoTo 0
 
-  If lo Is Nothing Then
-    Debug.Print "ADVERTENCIA: No se encontro " & TANQUES_TABLE & ". Se usaran valores por defecto."
+  If tankTable Is Nothing Then
+    Debug.Print "ADVERTENCIA: No se encontro " & "tbl_Tanques" & ". Se usaran valores por defecto."
     Exit Function
   End If
 
-  If lo.ListRows.Count = 0 Then Exit Function
+  If tankTable.ListRows.Count = 0 Then Exit Function
 
   Dim colMap As Object
   Set colMap = CreateObject("Scripting.Dictionary")
   colMap.CompareMode = 1
 
-  Dim lc As ListColumn
-  For Each lc In lo.ListColumns
-    colMap(lc.Name) = lc.Index
-  Next lc
+  Dim tableColumn As ListColumn
+  For Each tableColumn In tankTable.ListColumns
+    colMap(tableColumn.Name) = tableColumn.Index
+  Next tableColumn
 
-  Dim lr As ListRow
+  Dim tableRow As ListRow
   Dim tagKey As String
 
-  For Each lr In lo.ListRows
-    tagKey = GetCellValue(lr, colMap, "Tag", "")
+  For Each tableRow In tankTable.ListRows
+    tagKey = GetCellValue(tableRow, colMap, "Tag", "")
     If tagKey = "" Then GoTo NextTank
 
-    Set LoadTankConfigs(tagKey) = BuildTankFromRow(lr, colMap, tagKey)
+    Set LoadTankConfigs(tagKey) = BuildTankFromRow(tableRow, colMap, tagKey)
 
 NextTank:
-  Next lr
+  Next tableRow
 End Function
 
 ''' <summary>
 ''' Helper interno: Construye un clsTank desde una fila de tabla y mapa de columnas.
 ''' </summary>
 
-Private Function BuildTankFromRow(ByRef lr As ListRow, ByRef colMap As Object, ByVal tagKey As String) As clsTank
-  Dim t As New clsTank
-  t.Tag = tagKey
-  t.Description = GetCellValue(lr, colMap, "Description", "")
-  t.System = GetCellValue(lr, colMap, "System", "")
-  t.Service = GetCellValue(lr, colMap, "Service", "")
-  t.Status = GetCellValue(lr, colMap, "Status", "OP")
+Private Function BuildTankFromRow(ByRef tankRow As ListRow, ByRef colMap As Object, ByVal tagKey As String) As clsTank
+  Dim newTank As New clsTank
+  newTank.Tag = tagKey
+  newTank.Description = GetCellValue(tankRow, colMap, "Description", "")
+  newTank.System = GetCellValue(tankRow, colMap, "System", "")
+  newTank.Service = GetCellValue(tankRow, colMap, "Service", "")
+  newTank.Status = GetCellValue(tankRow, colMap, "Status", "OP")
 
-  Set t.Fluid = New clsFluid
-  t.Fluid.Name = GetCellValue(lr, colMap, "FluidName", tagKey & "_Fluido")
-  t.Fluid.Description = GetCellValue(lr, colMap, "FluidDescription", "")
-  t.Fluid.FluidType = GetCellFluidType(lr, colMap, "FluidType", CRD)
-  t.Fluid.TypicalAPI = GetCellNumeric(lr, colMap, "API60", 35)
-  t.Fluid.TypicalViscosity = GetCellNumeric(lr, colMap, "Viscosity", 0)
-  t.Fluid.ReferenceTemperature = GetCellNumeric(lr, colMap, "ReferenceTemperature", 60)
-  t.Fluid.ReferencePressure = GetCellNumeric(lr, colMap, "ReferencePressure", 0)
+  Set newTank.Fluid = New clsFluid
+  newTank.Fluid.Name = GetCellValue(tankRow, colMap, "FluidName", tagKey & "_Fluido")
+  newTank.Fluid.Description = GetCellValue(tankRow, colMap, "FluidDescription", "")
+  newTank.Fluid.FluidType = GetCellFluidType(tankRow, colMap, "FluidType", CRD)
+  newTank.Fluid.TypicalAPI = GetCellNumeric(tankRow, colMap, "API60", 35)
+  newTank.Fluid.TypicalViscosity = GetCellNumeric(tankRow, colMap, "Viscosity", 0)
+  newTank.Fluid.ReferenceTemperature = GetCellNumeric(tankRow, colMap, "ReferenceTemperature", 60)
+  newTank.Fluid.ReferencePressure = GetCellNumeric(tankRow, colMap, "ReferencePressure", 0)
 
-  t.Material = GetCellMaterial(lr, colMap, "Material", MCrbn)
-  t.ShellThickness = GetCellNumeric(lr, colMap, "ShellThickness", 0)
-  t.RoofType = GetCellValue(lr, colMap, "RoofType", "")
-  t.FloorType = GetCellValue(lr, colMap, "FloorType", "")
+  newTank.Material = GetCellMaterial(tankRow, colMap, "Material", MCrbn)
+  newTank.ShellThickness = GetCellNumeric(tankRow, colMap, "ShellThickness", 0)
+  newTank.RoofType = GetCellValue(tankRow, colMap, "RoofType", "")
+  newTank.FloorType = GetCellValue(tankRow, colMap, "FloorType", "")
 
-  t.NominalCapacity = GetCellNumeric(lr, colMap, "NominalCapacity", 0)
-  t.Diameter = GetCellNumeric(lr, colMap, "Diameter", 0)
-  t.EffectiveHeight = GetCellNumeric(lr, colMap, "EffectiveHeight", 0)
-  t.ReferenceHeight = GetCellNumeric(lr, colMap, "ReferenceHeight", 0)
-  t.SafeFillLevel = GetCellNumeric(lr, colMap, "SafeFillLevel", 0)
-  t.SafePumpLevel = GetCellNumeric(lr, colMap, "SafePumpLevel", 0)
+  newTank.NominalCapacity = GetCellNumeric(tankRow, colMap, "NominalCapacity", 0)
+  newTank.Diameter = GetCellNumeric(tankRow, colMap, "Diameter", 0)
+  newTank.EffectiveHeight = GetCellNumeric(tankRow, colMap, "EffectiveHeight", 0)
+  newTank.ReferenceHeight = GetCellNumeric(tankRow, colMap, "ReferenceHeight", 0)
+  newTank.SafeFillLevel = GetCellNumeric(tankRow, colMap, "SafeFillLevel", 0)
+  newTank.SafePumpLevel = GetCellNumeric(tankRow, colMap, "SafePumpLevel", 0)
 
-  t.IsThermalInsulated = GetCellBool(lr, colMap, "IsThermalInsulated", False)
-  t.HasFloatingRoof = GetCellBool(lr, colMap, "HasFloatingRoof", False)
-  t.IsTableNetOfRoof = GetCellBool(lr, colMap, "IsTableNetOfRoof", False)
+  newTank.IsThermalInsulated = GetCellBool(tankRow, colMap, "IsThermalInsulated", False)
+  newTank.HasFloatingRoof = GetCellBool(tankRow, colMap, "HasFloatingRoof", False)
+  newTank.IsTableNetOfRoof = GetCellBool(tankRow, colMap, "IsTableNetOfRoof", False)
 
-  t.CriticalZoneLower = GetCellNumeric(lr, colMap, "CriticalZoneLower", 0)
-  t.CriticalZoneUpper = GetCellNumeric(lr, colMap, "CriticalZoneUpper", 0)
-  t.RoofWeight = GetCellNumeric(lr, colMap, "RoofWeight", 0)
-  t.BaseDeduction = GetCellNumeric(lr, colMap, "BaseDeduction", 0)
-  t.MinLevelDeduction = GetCellNumeric(lr, colMap, "MinLevelDeduction", 0)
-  t.MaxLevelDeduction = GetCellNumeric(lr, colMap, "MaxLevelDeduction", 0)
-  t.APICorrectionLT = GetCellNumeric(lr, colMap, "APICorrectionLT", 0)
-  t.APICorrectionGT = GetCellNumeric(lr, colMap, "APICorrectionGT", 0)
+  newTank.CriticalZoneLower = GetCellNumeric(tankRow, colMap, "CriticalZoneLower", 0)
+  newTank.CriticalZoneUpper = GetCellNumeric(tankRow, colMap, "CriticalZoneUpper", 0)
+  newTank.RoofWeight = GetCellNumeric(tankRow, colMap, "RoofWeight", 0)
+  newTank.BaseDeduction = GetCellNumeric(tankRow, colMap, "BaseDeduction", 0)
+  newTank.MinLevelDeduction = GetCellNumeric(tankRow, colMap, "MinLevelDeduction", 0)
+  newTank.MaxLevelDeduction = GetCellNumeric(tankRow, colMap, "MaxLevelDeduction", 0)
+  newTank.APICorrectionLT = GetCellNumeric(tankRow, colMap, "APICorrectionLT", 0)
+  newTank.APICorrectionGT = GetCellNumeric(tankRow, colMap, "APICorrectionGT", 0)
 
-  Set BuildTankFromRow = t
+  Set BuildTankFromRow = newTank
 End Function
 
 ''' <summary>
@@ -314,20 +314,20 @@ End Function
 ''' </summary>
 
 Public Sub LoadStrappingTablesToCache()
-  Dim ws As Worksheet
+  Dim targetWorksheet As Worksheet
   On Error Resume Next
-  Set ws = ThisWorkbook.Sheets(TANQUES_SHEET)
+  Set targetWorksheet = ThisWorkbook.Sheets("cnf_Tanques")
   On Error GoTo 0
-  If ws Is Nothing Then Exit Sub
+  If targetWorksheet Is Nothing Then Exit Sub
 
-  Dim lo As ListObject
-  For Each lo In ws.ListObjects
-    If lo.ListRows.Count > 0 Then
+  Dim tableObject As ListObject
+  For Each tableObject In targetWorksheet.ListObjects
+    If tableObject.ListRows.Count > 0 Then
       On Error Resume Next
-      GetVolumeFromTable lo, lo.Name, 0
+      GetVolumeFromTable tableObject, tableObject.Name, 0
       On Error GoTo 0
     End If
-  Next lo
+  Next tableObject
   Debug.Print "Tablas de aforo cargadas en cache."
 End Sub
 
@@ -336,73 +336,73 @@ End Sub
 ''' </summary>
 
 Public Function GetCachedStrappingTable(ByVal tag As String) As Object
-  Dim ws As Worksheet
+  Dim targetWorksheet As Worksheet
   On Error Resume Next
-  Set ws = ThisWorkbook.Sheets(TANQUES_SHEET)
+  Set targetWorksheet = ThisWorkbook.Sheets("cnf_Tanques")
   On Error GoTo 0
-  If ws Is Nothing Then Exit Function
+  If targetWorksheet Is Nothing Then Exit Function
 
-  Dim lo As ListObject
-  For Each lo In ws.ListObjects
-    Dim lc As ListColumn
-    For Each lc In lo.ListColumns
-      If lc.Name = tag Or lc.Name = UCase(tag) Then
-        Set GetCachedStrappingTable = lo
+  Dim tableObject As ListObject
+  For Each tableObject In targetWorksheet.ListObjects
+    Dim listColumn As ListColumn
+    For Each listColumn In tableObject.ListColumns
+      If listColumn.Name = tag Or listColumn.Name = UCase(tag) Then
+        Set GetCachedStrappingTable = tableObject
         Exit Function
       End If
-    Next lc
-  Next lo
+    Next listColumn
+  Next tableObject
 End Function
 
 ' =========================================================================================================
 ' HELPERS DE LECTURA DE CELDA (privados al modulo)
 ' =========================================================================================================
 
-Private Function GetCellValue(ByRef lr As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As Variant) As Variant
+Private Function GetCellValue(ByRef tableRow As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As Variant) As Variant
   If colMap.Exists(colName) Then
-    Dim v As Variant
-    v = lr.Range.Cells(1, colMap(colName) - lr.Range.Column + 1).Value
-    If Not IsEmpty(v) And Not IsNull(v) Then
-      GetCellValue = v
+    Dim cellValue As Variant
+    cellValue = tableRow.Range.Cells(1, colMap(colName) - tableRow.Range.Column + 1).Value
+    If Not IsEmpty(cellValue) And Not IsNull(cellValue) Then
+      GetCellValue = cellValue
       Exit Function
     End If
   End If
   GetCellValue = defaultVal
 End Function
 
-Private Function GetCellNumeric(ByRef lr As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As Double) As Double
-  Dim v As Variant
-  v = GetCellValue(lr, colMap, colName, defaultVal)
-  If IsNumeric(v) Then
-    GetCellNumeric = CDbl(v)
+Private Function GetCellNumeric(ByRef tableRow As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As Double) As Double
+  Dim cellValue As Variant
+  cellValue = GetCellValue(tableRow, colMap, colName, defaultVal)
+  If IsNumeric(cellValue) Then
+    GetCellNumeric = CDbl(cellValue)
   Else
     GetCellNumeric = defaultVal
   End If
 End Function
 
-Private Function GetCellBool(ByRef lr As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As Boolean) As Boolean
-  Dim v As Variant
-  v = GetCellValue(lr, colMap, colName, defaultVal)
-  If VarType(v) = vbBoolean Then
-    GetCellBool = CBool(v)
-  ElseIf VarType(v) = vbString Then
-    GetCellBool = (LCase(Trim(CStr(v))) = "si" Or LCase(Trim(CStr(v))) = "true" Or LCase(Trim(CStr(v))) = "verdadero" Or v = 1)
-  ElseIf IsNumeric(v) Then
-    GetCellBool = (CDbl(v) <> 0)
+Private Function GetCellBool(ByRef tableRow As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As Boolean) As Boolean
+  Dim cellValue As Variant
+  cellValue = GetCellValue(tableRow, colMap, colName, defaultVal)
+  If VarType(cellValue) = vbBoolean Then
+    GetCellBool = CBool(cellValue)
+  ElseIf VarType(cellValue) = vbString Then
+    GetCellBool = (LCase(Trim(CStr(cellValue))) = "si" Or LCase(Trim(CStr(cellValue))) = "true" Or LCase(Trim(CStr(cellValue))) = "verdadero" Or cellValue = 1)
+  ElseIf IsNumeric(cellValue) Then
+    GetCellBool = (CDbl(cellValue) <> 0)
   Else
     GetCellBool = defaultVal
   End If
 End Function
 
-Private Function GetCellFluidType(ByRef lr As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As eTypeLiq) As eTypeLiq
-  Dim v As Variant
-  v = GetCellValue(lr, colMap, colName, defaultVal)
-  If IsNumeric(v) Then
-    GetCellFluidType = CLng(v)
+Private Function GetCellFluidType(ByRef tableRow As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As eTypeLiq) As eTypeLiq
+  Dim cellValue As Variant
+  cellValue = GetCellValue(tableRow, colMap, colName, defaultVal)
+  If IsNumeric(cellValue) Then
+    GetCellFluidType = CLng(cellValue)
   Else
-    Dim s As String
-    s = UCase(Trim(CStr(v)))
-    Select Case s
+    Dim sanitizedValue As String
+    sanitizedValue = UCase(Trim(CStr(cellValue)))
+    Select Case sanitizedValue
       Case "CRD", "CRUDO": GetCellFluidType = CRD
       Case "REF", "REFINADO": GetCellFluidType = REF
       Case "LUB", "LUBRICANTE": GetCellFluidType = LUB
@@ -411,15 +411,15 @@ Private Function GetCellFluidType(ByRef lr As ListRow, ByRef colMap As Object, B
   End If
 End Function
 
-Private Function GetCellMaterial(ByRef lr As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As eMtrl) As eMtrl
-  Dim v As Variant
-  v = GetCellValue(lr, colMap, colName, defaultVal)
-  If IsNumeric(v) Then
-    GetCellMaterial = CLng(v)
+Private Function GetCellMaterial(ByRef tableRow As ListRow, ByRef colMap As Object, ByVal colName As String, ByVal defaultVal As eMtrl) As eMtrl
+  Dim cellValue As Variant
+  cellValue = GetCellValue(tableRow, colMap, colName, defaultVal)
+  If IsNumeric(cellValue) Then
+    GetCellMaterial = CLng(cellValue)
   Else
-    Dim s As String
-    s = UCase(Trim(CStr(v)))
-    Select Case s
+    Dim sanitizedValue As String
+    sanitizedValue = UCase(Trim(CStr(cellValue)))
+    Select Case sanitizedValue
       Case "MCBN", "ACERO CARBON", "CARBON": GetCellMaterial = MCrbn
       Case "ST304", "304": GetCellMaterial = St304
       Case "ST316", "316": GetCellMaterial = St316

@@ -528,7 +528,7 @@ End Function
 ''' Si no hay presion, retorna 1 (sin correccion).
 ''' </summary>
 Public Function CalculateCPL(ByVal tempObsF As Double, ByVal API60F As Double, _
-  Optional ByVal presObs As Double = 0, Optional ByVal pe As Double = 0) As Double
+  Optional ByVal presObs As Double = 0, Optional ByVal equilibriumPressure As Double = 0) As Double
   On Error GoTo ErrHandler
   If presObs <= 0 Then
     CalculateCPL = 1
@@ -538,7 +538,7 @@ Public Function CalculateCPL(ByVal tempObsF As Double, ByVal API60F As Double, _
     CalculateCPL = 1
     Exit Function
   End If
-  CalculateCPL = mdAPICalcs.CPL(API60F, tempObsF, presObs, Me.Fluid.FluidType, pe)
+  CalculateCPL = mdAPICalcs.CPL(API60F, tempObsF, presObs, Me.Fluid.FluidType, equilibriumPressure)
   Exit Function
 ErrHandler:
   Debug.Print "Error en CalculateCPL [" & Me.Tag & "]: " & Err.Description
@@ -550,7 +550,7 @@ End Function
 ''' </summary>
 Public Function CalculateCTSH(ByVal tempLiqF As Double, ByVal tempAmbF As Double) As Double
   On Error GoTo ErrHandler
-  CalculateCTSH = mdAPICalcs.ctsh(tempLiqF, tempAmbF, Me.Material, f, cTEMPBASE_F)
+  CalculateCTSH = mdAPICalcs.ctsh(tempLiqF, tempAmbF, Me.Material, TmpUnits:=F, TmpBase:=cTEMPBASE_F)
   Exit Function
 ErrHandler:
   Debug.Print "Error en CalculateCTSH [" & Me.Tag & "]: " & Err.Description
@@ -605,7 +605,7 @@ End Function
 ''' Si API60F se omite, usa el API del fluido contenido.
 ''' </summary>
 Public Function CalculateGSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, ByVal tempAmbF As Double, _
-  ByVal API60F As Double, Optional ByVal presObs As Double = 0, Optional ByVal pe As Double = 0) As Double
+  ByVal API60F As Double, Optional ByVal presObs As Double = 0, Optional ByVal equilibriumPressure As Double = 0) As Double
   On Error GoTo ErrHandler
   Dim gov As Double
   gov = Me.CalculateGOV(Level_mm, tempLiqF, tempAmbF, API60F)
@@ -616,7 +616,7 @@ Public Function CalculateGSV(ByVal Level_mm As Long, ByVal tempLiqF As Double, B
   Dim CTL As Double
   CTL = Me.CalculateCTL(tempLiqF, API60F)
   Dim CPL As Double
-  CPL = Me.CalculateCPL(tempLiqF, API60F, presObs, pe)
+  CPL = Me.CalculateCPL(tempLiqF, API60F, presObs, equilibriumPressure)
   CalculateGSV = gov * CTL * CPL
   Exit Function
 ErrHandler:
@@ -680,7 +680,7 @@ Public Function CalculateFRA(ByVal currentLevel As Double, ByVal actualAPIObs As
 
   If Not Me.IsTableNetOfRoof Then
     Dim DensObs As Double
-    DensObs = mdConversion.CONVDENS(actualAPIObs, A2S, True)
+    DensObs = mdConversion.CONVDENS(actualAPIObs, API, SGU, True)
     totalPotentialDeduction = mdAPICalcs.FRA(Me.RoofWeight, DensObs, 1)
   Else
     Dim diffAPI As Double
