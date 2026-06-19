@@ -18,23 +18,23 @@ Private Const TABLE_NAME As String = "tbl_Estaciones"
 Public Function GetAllStations() As Collection
   On Error GoTo ErrHandler
 
-  Dim lo As ListObject: Set lo = GetStationsTable()
-  Dim lr As ListRow
+  Dim stationTable As ListObject: Set stationTable = GetStationsTable()
+  Dim rowItem As ListRow
   Dim stationsColl As New Collection
   Dim objStation As clsStation
 
-  If lo.ListRows.Count = 0 Then
+  If stationTable.ListRows.Count = 0 Then
     Set GetAllStations = stationsColl
     Exit Function
   End If
 
-  For Each lr In lo.ListRows
-    Set objStation = MapRowToStation(lr)
+  For Each rowItem In stationTable.ListRows
+    Set objStation = MapRowToStation(rowItem)
     ' Si el Tag ya existe (duplicado), se salta sin romper la colección
     On Error Resume Next
     stationsColl.Add objStation, objStation.Tag
     On Error GoTo ErrHandler
-  Next lr
+  Next rowItem
 
   Set GetAllStations = stationsColl
   Exit Function
@@ -51,18 +51,18 @@ End Function
 Public Function GetStationByID(ByVal StationID As String) As clsStation
   On Error GoTo ErrHandler
 
-  Dim lo As ListObject: Set lo = GetStationsTable()
-  Dim lr As ListRow
+  Dim stationTable As ListObject: Set stationTable = GetStationsTable()
+  Dim rowItem As ListRow
   Dim idColIndex As Long
 
-  idColIndex = lo.ListColumns("ID_Estación").Index
+  idColIndex = stationTable.ListColumns("ID_Estación").Index
 
-  For Each lr In lo.ListRows
-    If lr.Range.Cells(1, idColIndex).Value = StationID Then
-      Set GetStationByID = MapRowToStation(lr)
+  For Each rowItem In stationTable.ListRows
+    If rowItem.Range.Cells(1, idColIndex).Value = StationID Then
+      Set GetStationByID = MapRowToStation(rowItem)
       Exit Function
     End If
-  Next lr
+  Next rowItem
 
   Exit Function
 ErrHandler:
@@ -75,30 +75,30 @@ End Function
 ''' </summary>
 
 Private Function MapRowToStation(ByRef row As ListRow) As clsStation
-  Dim obj As New clsStation
-  Dim lo As ListObject: Set lo = row.Parent
-  Dim lc As ListColumn
+  Dim objStation As New clsStation
+  Dim tableObject As ListObject: Set tableObject = row.Parent
+  Dim listColumn As ListColumn
   Dim headerName As String
   Dim cellValue As Variant
 
-  For Each lc In lo.ListColumns
-    headerName = lc.Name
-    cellValue = row.Range.Cells(1, lc.Index).Value
+  For Each listColumn In tableObject.ListColumns
+    headerName = listColumn.Name
+    cellValue = row.Range.Cells(1, listColumn.Index).Value
 
     On Error Resume Next
     Select Case headerName
-      Case "ID_Estación": obj.Tag = CStr(cellValue)
-      Case "Nombre":      obj.Name = CStr(cellValue)
-      Case "Descripción": obj.Description = CStr(cellValue)
-      Case "Estado":      obj.Status = CStr(cellValue)
-      Case "Ubicación":   obj.Location = CStr(cellValue)
+      Case "ID_Estación": objStation.Tag = CStr(cellValue)
+      Case "Nombre":      objStation.Name = CStr(cellValue)
+      Case "Descripción": objStation.Description = CStr(cellValue)
+      Case "Estado":      objStation.Status = CStr(cellValue)
+      Case "Ubicación":   objStation.Location = CStr(cellValue)
       Case Else
-        CallByName obj, headerName, VbLet, cellValue
+        CallByName objStation, headerName, VbLet, cellValue
     End Select
     On Error GoTo 0
-  Next lc
+  Next listColumn
 
-  Set MapRowToStation = obj
+  Set MapRowToStation = objStation
 End Function
 
 ''' <summary>

@@ -85,7 +85,7 @@ Public Property Let TypicalAPI(ByVal value As Double)
     Err.Raise eErrors.errFluidInvalidAPI, "clsFluid", "La gravedad API debe ser superior a -131.5."
   End If
   typicalAPI_ = value
-  typicalDensity_ = mdConversion.CONVDENS(value, A2S, True)
+  typicalDensity_ = mdConversion.CONVDENS(value, API, SGU, True)
   cachedAlpha60Valid_ = False
 End Property
 
@@ -103,7 +103,7 @@ Public Property Let TypicalDensity(ByVal value As Double)
     Err.Raise eErrors.errFluidInvalidDensity, "clsFluid", "La densidad relativa debe ser mayor a cero."
   End If
   typicalDensity_ = value
-  typicalAPI_ = mdConversion.CONVDENS(value, S2A, True)
+  typicalAPI_ = mdConversion.CONVDENS(value, SGU, API, True)
   cachedAlpha60Valid_ = False
 End Property
 
@@ -141,7 +141,7 @@ End Property
 ''' </summary>
 Public Property Get Density60F() As Double
   If typicalAPI_ > -cAPI_B Then
-    Density60F = mdConversion.CONVDENS(typicalAPI_, A2S, True)
+    Density60F = mdConversion.CONVDENS(typicalAPI_, API, SGU, True)
   Else
     Density60F = typicalDensity_
   End If
@@ -208,13 +208,13 @@ End Function
 ''' Retorna 1 si no hay presion.
 ''' </summary>
 Public Function CalculateCPL(ByVal tempF As Double, Optional ByVal presObs As Double = 0, _
-  Optional ByVal pe As Double = 0) As Double
+  Optional ByVal equilibriumPressure As Double = 0) As Double
   On Error GoTo ErrHandler
   If presObs <= 0 Then
     CalculateCPL = 1
     Exit Function
   End If
-  CalculateCPL = mdAPICalcs.CPL(typicalAPI_, tempF, presObs, fluidType_, pe)
+  CalculateCPL = mdAPICalcs.CPL(typicalAPI_, tempF, presObs, fluidType_, equilibriumPressure)
   Exit Function
 ErrHandler:
   Debug.Print "Error en Fluid.CalculateCPL [" & name_ & "]: " & Err.Description

@@ -190,12 +190,12 @@ Public Function FindColumnIndex(ByRef hdr As Variant, ByVal name As String) As L
     FindColumnIndex = 0
     Exit Function
   End If
-  Dim c As Long
-  For c = 1 To UBound(hdr, 2)
-    If InStr(1, CStr(hdr(1, c)), name, vbTextCompare) > 0 Then
-      FindColumnIndex = c
+  Dim colIndex As Long
+  For colIndex = 1 To UBound(hdr, 2)
+    If InStr(1, CStr(hdr(1, colIndex)), name, vbTextCompare) > 0 Then
+      FindColumnIndex = colIndex
       Exit Function
     End If
-  Next c
+  Next colIndex
   FindColumnIndex = 0
 End Function

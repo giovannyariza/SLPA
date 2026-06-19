@@ -37,11 +37,11 @@ Public Function HYC(ByVal TmpObs As Double, _
 
   Select Case TmpUnits
     Case F, R:
-      tempObsF = mdConversion.CONVTEMP(TmpObs, IIF(TmpUnits = F, F, R2F))
+      tempObsF = mdConversion.CONVTEMP(TmpObs, TmpUnits, F)
       deltaT = tempObsF - cTEMPBASE_F
       HYC = 1 - (cHYCF_A * deltaT) - (cHYCF_B * (deltaT ^ 2))
     Case C, K:
-      tempObsC = mdConversion.CONVTEMP(TmpObs, IIF(TmpUnits = C, C, K2C))
+      tempObsC = mdConversion.CONVTEMP(TmpObs, TmpUnits, C)
       deltaT = tempObsC - cTEMPBASE_C
       HYC = 1 - (cHYCC_C * deltaT) - (cHYCC_D * (deltaT ^ 2))
     Case Else:
@@ -76,13 +76,13 @@ Public Function DENSHYC(ByVal DensObs As Double, _
   Select Case DensUnits
     Case API
         If DensObs <= -cAPI_B Then GoTo ErrHandler
-        DensObsInKGM = mdConversion.CONVDENS(DensObs, A2K, True)
+        DensObsInKGM = mdConversion.CONVDENS(DensObs, API, KGM, True)
     Case KGM
         If DensObs <= 0 Then GoTo ErrHandler
         DensObsInKGM = DensObs
     Case SGU
         If DensObs <= 0 Then GoTo ErrHandler
-        DensObsInKGM = mdConversion.CONVDENS(DensObs, S2K, True)
+        DensObsInKGM = mdConversion.CONVDENS(DensObs, SGU, KGM, True)
   End Select
 
   ' Obtener el factor de corrección por hidrómetro (HYC)
@@ -92,11 +92,11 @@ Public Function DENSHYC(ByVal DensObs As Double, _
 
   Select Case DensUnits
     Case API
-      DENSHYC = mdConversion.CONVDENS(DensCorrInKGM, K2A, True)
+      DENSHYC = mdConversion.CONVDENS(DensCorrInKGM, KGM, API, True)
     Case KGM
       DENSHYC = DensCorrInKGM
     Case SGU
-      DENSHYC = mdConversion.CONVDENS(DensCorrInKGM, K2S, True)
+      DENSHYC = mdConversion.CONVDENS(DensCorrInKGM, KGM, SGU, True)
   End Select
   Exit Function
 
@@ -128,17 +128,17 @@ Public Function ALPHA60MED(ByVal DensRange As Variant, _
   ArrTmps = mdHelpers.ConvertToDoubleArray(TempRange)
   
   ' Validar que ambos arreglos tengan la misma dimensión y mínimo 10 datos
-  Dim n As Long
-  n = UBound(ArrDens)
+  Dim sampleCount As Long
+  sampleCount = UBound(ArrDens)
 
-  If n <> UBound(ArrTmps) Or n < 10 Then
+  If sampleCount <> UBound(ArrTmps) Or sampleCount < 10 Then
     ' Retorna #NUM! en Excel si los datos son insuficientes
     ALPHA60MED = CVErr(xlErrNum)
     Exit Function
   End If
 
   ' Procesamiento Matricial
-  Dim i As Long
+  Dim arrayIndex As Long
   Dim SumAlpha As Double
   Dim API60_Iter As Double
   Dim Alfa60_Iter As Double
@@ -146,10 +146,10 @@ Public Function ALPHA60MED(ByVal DensRange As Variant, _
   Dim ValidCounts As Long
   ValidCounts = 0
   
-  For i = 1 To n
-    If mdHelpers.IsFinite(ArrDens(i)) And mdHelpers.IsFinite(ArrTmps(i)) Then      
+  For arrayIndex = 1 To sampleCount
+    If mdHelpers.IsFinite(ArrDens(arrayIndex)) And mdHelpers.IsFinite(ArrTmps(arrayIndex)) Then      
       ' Hallar API 60 base para este punto (Newton-Raphson)
-      API60_Iter = API60F(ArrDens(i), ArrTmps(i), TypeLiq, 0, 0)
+      API60_Iter = API60F(ArrDens(arrayIndex), ArrTmps(arrayIndex), TypeLiq, 0, 0)
       
       If API60_Iter > 0 Then
         ' Hallar Alfa 60 para este API 60
@@ -161,7 +161,7 @@ Public Function ALPHA60MED(ByVal DensRange As Variant, _
         End If
       End If
     End If
-  Next i
+  Next arrayIndex
   
   ' Calcular Promedio
   If ValidCounts >= 10 Then
@@ -191,7 +191,7 @@ Public Function ALPHA60(ByVal API60 As Double, _
      GoTo ErrHandler
 
   Dim Rho60 As Double
-  Rho60 = mdConversion.CONVDENS(API60, A2K, True)
+  Rho60 = mdConversion.CONVDENS(API60, API, KGM, True)
   If Rho60 <= 0 Then GoTo ErrHandler
   
   ' Selección de Constantes K (API MPMS 11.1 Tablas 6A, 6B, 6D)
@@ -356,18 +356,18 @@ Public Function CPL(ByVal API60 As Double, _
                     ByVal TempF As Double, _
                     ByVal Pres As Double, _
                     Optional TypeLiq As eTypeLiq = CRD, _
-                    Optional ByVal Pe As Double = 0) As Double
+                    Optional ByVal equilibriumPressure As Double = 0) As Double
 ' Calcula el Factor de Corrección por Presión del Líquido (CPL).
 ' Basado en API MPMS Capítulo 11.1.
   
   On Error GoTo ErrHandler
 
   If Not mdHelpers.IsFinite(API60) Or Not mdHelpers.IsFinite(TempF) Or _
-     Not mdHelpers.IsFinite(Pres) Or Not mdHelpers.IsFinite(Pe) Then _
+     Not mdHelpers.IsFinite(Pres) Or Not mdHelpers.IsFinite(equilibriumPressure) Then _
      GoTo ErrHandler
   
   ' Validaciones de Rangos Físicos API 11.1
-  If Pres < Pe Or Pres > cPRESSVALIDRANGE_MAX Or _
+  If Pres < equilibriumPressure Or Pres > cPRESSVALIDRANGE_MAX Or _
      Not mdHelpers.IsValidAPI(API60, TypeLiq, CheckNormative:=False) Then _
      GoTo ErrHandler
 
@@ -378,7 +378,7 @@ Public Function CPL(ByVal API60 As Double, _
 
   ' Calcular la diferencia de presión (Pres - Pe) en PSI
   Dim DeltaP As Double
-  DeltaP = Pres - Pe
+  DeltaP = Pres - equilibriumPressure
 
   ' Calcular el Factor de Corrección por Presión (CPL)
   ' Fórmula: 1 / (1 - Fcp * (Pres - Pe) * 10 ^ -5)
@@ -407,7 +407,7 @@ Public Function API60F(ByVal APIOBS As Double, _
                        ByVal TempObs As Double, _
                        Optional TypeLiq As eTypeLiq = CRD, _
                        Optional ByVal PresObs As Double = 0, _
-                       Optional ByVal Pe As Double = 0) As Double
+                       Optional ByVal equilibriumPressure As Double = 0) As Double
 ' Calcula la Gravedad API a 60°F y Presión de Equilibrio mediante el método de
 ' Newton-Raphson. Basado en API MPMS Capítulo 11.1 (Apéndice E).
   
@@ -423,7 +423,7 @@ Public Function API60F(ByVal APIOBS As Double, _
   TempObs_F68 = mdConversion.CONVTEMP68(TempObs, F)
   
   Dim TempObs_C68 As Double
-  TempObs_C68 = mdConversion.CONVTEMP(TempObs_F68, F2C)
+  TempObs_C68 = mdConversion.CONVTEMP(TempObs_F68, F, C)
   
   ' Calcular Delta_t en Fahrenheit IPTS-68
   Dim DeltaT_F68 As Double
@@ -431,7 +431,7 @@ Public Function API60F(ByVal APIOBS As Double, _
 
   ' Convertir APIOBS (ITS-90) a Densidad observada en Kg/m³ (RhoObs)
   Dim RhoObs As Double
-  RhoObs = mdConversion.CONVDENS(APIOBS, A2K, True)
+  RhoObs = mdConversion.CONVDENS(APIOBS, API, KGM, True)
 
   ' Inicializar el valor de Rho60 (ITS-90) para la iteración.
   ' Usar RhoObs como punto de partida.
@@ -440,71 +440,70 @@ Public Function API60F(ByVal APIOBS As Double, _
   
   ' Iniciar el proceso iterativo (Método de Newton)
   Const MAXITERATIONS As Long = 25 ' Número máximo de iteraciones
-  Dim m As Byte             ' Contador de iteraciones
-  Dim API60_Iter As Double  ' API60 (ITS-90) correspondiente a Rho60_Iter
-  Dim Alfa60_Iter As Double ' Alfa60 (1/°F) para API60_Iter
-  Dim Rho68_Iter As Double  ' Densidad a 60F IPTS-68 (Kg/m³) para API60_Iter
-  Dim CTL_Iter As Double    ' CTL para API60_Iter y TempObs
-  Dim CPL_Iter As Double    ' CPL para API60_Iter, TempObs, PresObs, Pe
-  Dim CTPL_Iter As Double   ' CTPL para API60_Iter, TempObs, PresObs, Pe
-  Dim Em As Double          ' Función de error
-  Dim Da As Double          ' Coeficiente Da para la derivada
-  Dim Dt As Double          ' Derivada correspondiente a la temperatura
-  Dim FP_Iter As Double     ' FP para API60_Iter y TempObs
-  Dim Dp As Double          ' 
-  Dim Dp_Num As Double      '
-  Dim Dp_Denom As Double    ' 
-  Dim DRho60 As Double      ' Corrección (DRho60) usando la derivada
+  Dim iterationIndex As Byte        ' Contador de iteraciones
+  Dim API60_Iter As Double          ' API60 (ITS-90) correspondiente a Rho60_Iter
+  Dim Alfa60_Iter As Double         ' Alfa60 (1/°F) para API60_Iter
+  Dim Rho68_Iter As Double          ' Densidad a 60F IPTS-68 (Kg/m³) para API60_Iter
+  Dim CTL_Iter As Double            ' CTL para API60_Iter y TempObs
+  Dim CPL_Iter As Double            ' CPL para API60_Iter, TempObs, PresObs, Pe
+  Dim CTPL_Iter As Double           ' CTPL para API60_Iter, TempObs, PresObs, Pe
+  Dim densityError As Double        ' Función de error
+  Dim derivativeCoefficient As Double ' Coeficiente Da para la derivada
+  Dim temperatureDerivativeTerm As Double ' Derivada correspondiente a la temperatura
+  Dim FP_Iter As Double             ' FP para API60_Iter y TempObs
+  Dim pressureDerivativeTerm As Double
+  Dim pressureDerivativeNumerator As Double
+  Dim pressureDerivativeDenominator As Double
+  Dim DRho60 As Double              ' Corrección (DRho60) usando la derivada
 
-  For m = 1 To MAXITERATIONS
+  For iterationIndex = 1 To MAXITERATIONS
     ' Convertir el Rho60_Iter (supuesto, ITS-90) a API60_Iter (ITS-90)
-    API60_Iter = mdConversion.CONVDENS(Rho60, K2A, True)
+    API60_Iter = mdConversion.CONVDENS(Rho60, KGM, API, True)
     ' Obtener Alfa60 (1/°F) y Rho68 (Kg/m³) para el API60_Iter actual
     Alfa60_Iter = ALPHA60(API60_Iter, TypeLiq, Rho68_Iter)
     ' Calcular CTL para el API60_Iter actual
     CTL_Iter = CTL(API60_Iter, TempObs, TypeLiq)
     ' Calcular CPL para el API60_Iter actual
-    CPL_Iter = CPL(API60_Iter, TempObs, PresObs, TypeLiq, Pe)
+    CPL_Iter = CPL(API60_Iter, TempObs, PresObs, TypeLiq, equilibriumPressure)
     ' Calcular CTPL_Iter como el producto de CTL_Iter y CPL_Iter
     CTPL_Iter = CTL_Iter * CPL_Iter
-    ' Calcular Em (Error)
-    Em = (RhoObs / CTPL_Iter) - Rho60
+    ' Calcular densityError (Error)
+    densityError = (RhoObs / CTPL_Iter) - Rho60
     ' Criterio de parada
-    If Abs(Em) < cEPSILON Then
+    If Abs(densityError) < cEPSILON Then
       API60F = API60_Iter
       Exit Function
     End If
 
     ' Cálculo de la Derivada para el ajuste (Newton Step)
-    ' Obtener coeficiente Da (ajuste de expansión diferencial)
-    Da = GetDaCoefficient(TypeLiq, Rho60)
-    ' Calcular el término Dt (API MPMS 11.1 2007 Apéndice E E.3)
-    ' Dt = Da * Alpha_60 * Delta_t * (1 + 1.6 * Alpha_60 * Delta_t)
-    Dt = Da * Alfa60_Iter * DeltaT_F68 * _
+    ' Obtener coeficiente derivativeCoefficient (ajuste de expansión diferencial)
+    derivativeCoefficient = GetDaCoefficient(TypeLiq, Rho60)
+    ' Calcular el término temperatureDerivativeTerm (API MPMS 11.1 2007 Apéndice E E.3)
+    ' temperatureDerivativeTerm = derivativeCoefficient * Alpha_60 * Delta_t * (1 + 1.6 * Alpha_60 * Delta_t)
+    temperatureDerivativeTerm = derivativeCoefficient * Alfa60_Iter * DeltaT_F68 * _
          (1 + cAPI_F16 * Alfa60_Iter * DeltaT_F68)
     ' Obtener FP_Iter para el API60_Iter actual y TempObs (ITS-90 F).
     ' CPL llamó a FP, pero la derivada necesita FP_Iter explícitamente.
     FP_Iter = FP(API60_Iter, TempObs, TypeLiq)
-    ' Calcular el término Dp (API MPMS 11.1 2007 Apéndice E E.5)
-    ' Dp = -(2 * CPL_m * P_obs * F_cp_m * (7.9392 + 0.02326 * TempObs_C68))
-    ' / (rho_m^2 * Alpha_60_m)
-    Dp_Num = -(2 * CPL_Iter * (PresObs - Pe) * (FP_Iter * cEPSILON) * _
+    ' Calcular el término pressureDerivativeTerm (API MPMS 11.1 2007 Apéndice E E.5)
+    ' pressureDerivativeTerm = -(2 * CPL_m * P_obs * F_cp_m * (7.9392 + 0.02326 * TempObs_C68)) / (rho_m^2 * Alpha_60_m)
+    pressureDerivativeNumerator = -(2 * CPL_Iter * (PresObs - equilibriumPressure) * (FP_Iter * cEPSILON) * _
               (cFPDERIVATIVE_A + cFPDERIVATIVE_B * TempObs_C68))
-    Dp_Denom = (Rho60 ^ 2 * Alfa60_Iter)
+    pressureDerivativeDenominator = (Rho60 ^ 2 * Alfa60_Iter)
 
-    If Abs(Dp_Denom) > cEPSILON Then
-      Dp = Dp_Num / Dp_Denom
+    If Abs(pressureDerivativeDenominator) > cEPSILON Then
+      pressureDerivativeTerm = pressureDerivativeNumerator / pressureDerivativeDenominator
     Else
-      Dp = 0
+      pressureDerivativeTerm = 0
     End If
 
     ' Calcular el siguiente paso de corrección (DRho60)
-    DRho60 = Em / (1 + Dt + Dp)    
+    DRho60 = densityError / (1 + temperatureDerivativeTerm + pressureDerivativeTerm)    
     ' Valor de Rho60 (ITS-90) para la siguiente iteración
     Rho60 = Rho60 + DRho60
     ' Seguridad: Si la densidad se vuelve negativa o irreal, abortar
     If Rho60 <= 0 Then Exit For
-  Next m ' Siguiente iteración
+  Next iterationIndex ' Siguiente iteración
 
   ' Si llega aquí, no hubo convergencia
   Debug.Print "API60F: No se alcanzó convergencia en " & _
@@ -560,7 +559,7 @@ Public Function APIOBS(ByVal API60 As Double, _
   
   ' Convertir API60 (BASE) a Densidad (ITS-90) en Kg/m³ a 60F
   Dim Rho60 As Double
-  Rho60 = mdConversion.CONVDENS(API60, A2K, True)
+  Rho60 = mdConversion.CONVDENS(API60, API, KGM, True)
   
   ' Calcular el Factor de Corrección por Temperatura del Líquido (CTL)
   Dim Ftl As Double
@@ -573,7 +572,7 @@ Public Function APIOBS(ByVal API60 As Double, _
   If RhoObs <= 0 Then GoTo ErrHandler
   
   ' Convertir la Densidad a la Temperatura Observada (en Kg/m³) a Gravedad API
-  APIOBS = mdConversion.CONVDENS(RhoObs, K2A, True)
+  APIOBS = mdConversion.CONVDENS(RhoObs, KGM, API, True)
 
   If Not mdHelpers.IsFinite(APIOBS) Then APIOBS = 0
   Exit Function
@@ -645,7 +644,7 @@ End Function
 
 ' ------------------------------------------------------------------------------
 
-Public Function SHRINK(ByVal X As Double, _
+Public Function SHRINK(ByVal lightBlendPercent As Double, _
                        ByVal APILight As Double, _
                        ByVal APIHeavy As Double) As Double
 ' Calcula el porcentaje de encogimiento (shrinkage) en mezclas de hidrocarburos
@@ -654,37 +653,37 @@ Public Function SHRINK(ByVal X As Double, _
   
   On Error GoTo ErrHandler
 
-  If Not mdHelpers.IsFinite(X) Or Not mdHelpers.IsFinite(APILight) Or _
+  If Not mdHelpers.IsFinite(lightBlendPercent) Or Not mdHelpers.IsFinite(APILight) Or _
      Not mdHelpers.IsFinite(APIHeavy) Then GoTo ErrHandler
 
-  If X < 0 Or X > 100 Then GoTo ErrHandler
+  If lightBlendPercent < 0 Or lightBlendPercent > 100 Then GoTo ErrHandler
   If APILight <= 0 Or APIHeavy <= 0 Then GoTo ErrHandler
 
   ' Variables para coeficientes
-  Dim C As Double, Y As Double, Z As Double
+  Dim shrinkCoefficient As Double, shrinkExponentY As Double, shrinkExponentZ As Double
 
   ' Selección de coeficientes según API del componente pesado
   If APIHeavy <= 10.8 Then
-    C = 1.532E-08
-    Y = 1.6769
-    Z = 1.7841
+    shrinkCoefficient = 1.532E-08
+    shrinkExponentY = 1.6769
+    shrinkExponentZ = 1.7841
   ElseIf APIHeavy <= 12# Then
-    C = 2.8822E-07
-    Y = 1.222
-    Z = 1.4731
+    shrinkCoefficient = 2.8822E-07
+    shrinkExponentY = 1.222
+    shrinkExponentZ = 1.4731
   Else ' APIHeavy > 12.0
-    C = 4.2178E-07
-    Y = 1.1812
-    Z = 1.4151
+    shrinkCoefficient = 4.2178E-07
+    shrinkExponentY = 1.1812
+    shrinkExponentZ = 1.4151
   End If
 
   ' Cálculo del encogimiento
-  ' Formula: encogimiento = C * X * (100 - X)^Y * (API_liviano - API_pesado)^Z
+  ' Formula: encogimiento = shrinkCoefficient * lightBlendPercent * (100 - lightBlendPercent)^shrinkExponentY * (API_liviano - API_pesado)^shrinkExponentZ
   Dim term1 As Double, term2 As Double, term3 As Double
   
-  term1 = C * X
-  term2 = (100 - X) ^ Y
-  term3 = (APILight - APIHeavy) ^ Z
+  term1 = shrinkCoefficient * lightBlendPercent
+  term2 = (100 - lightBlendPercent) ^ shrinkExponentY
+  term3 = (APILight - APIHeavy) ^ shrinkExponentZ
 
   SHRINK = term1 * term2 * term3
 
@@ -692,7 +691,7 @@ Public Function SHRINK(ByVal X As Double, _
   Exit Function
 
 ErrHandler:
-  Debug.Print "Error en SHRINK (X: " & X & ", APILight: " & APILight & _
+  Debug.Print "Error en SHRINK (Valor de mezcla: " & lightBlendPercent & ", APILight: " & APILight & _
               ", APIHeavy: " & APIHeavy & "): " & Err.Description
   SHRINK = 0 ' Retorno de seguridad sin corrección
 End Function
@@ -844,15 +843,15 @@ Public Function CBHP(ByVal Height As Double, _
   ' Definición de Constantes Físicas (Acero al Carbono API 650)
   ' Módulo de Elasticidad (Young's Modulus)
   ' Imperial: 30,000,000 psi | Métrico: 206,842,700,000 Pa (207 GPa)
-  Dim E As Double
-  Dim GravityConstant As Double
+  Dim youngsModulus As Double
+  Dim gravityConstant As Double
   
   If Not IsMetric Then
-    E = cYOUNG_MODULUS_STEEL_IMP ' psi
-    GravityConstant = 0.4335 ' psi/ft (presión del agua por pie de altura)
+    youngsModulus = cYOUNG_MODULUS_STEEL_IMP ' psi
+    gravityConstant = 0.4335 ' psi/ft (presión del agua por pie de altura)
   Else
-    E = cYOUNG_MODULUS_STEEL_MET ' Pa
-    GravityConstant = 9806.65 ' Pa/m (presión del agua por metro de altura)
+    youngsModulus = cYOUNG_MODULUS_STEEL_MET ' Pa
+    gravityConstant = 9806.65 ' Pa/m (presión del agua por metro de altura)
   End If
 
   ' Cálculo de la Presión Hidrostática Promedio (P)
@@ -860,27 +859,27 @@ Public Function CBHP(ByVal Height As Double, _
   ' Nota: La presión se evalúa usualmente a la mitad de la columna de líquido 
   ' para obtener una deformación promedio en la coraza.
   Dim Pressure As Double
-  Pressure = DensObs * GravityConstant * (Height / 2)
+  Pressure = DensObs * gravityConstant * (Height / 2)
   
   ' Cálculo de la deformación radial (Hoop Stress principle)
   ' La fórmula simplificada de expansión de volumen para un cilindro delgado:
   ' Delta_V / V = (P * D) / (2 * E * t) 
   ' CBhp = 1 + (Delta_V / V)  
-  Dim dValue As Double
-  dValue = Diameter
+  Dim diameterForCalculation As Double
+  diameterForCalculation = Diameter
   
-  Dim tValue As Double
-  tValue = AvgThickness
+  Dim thicknessForCalculation As Double
+  thicknessForCalculation = AvgThickness
   
   ' Ajuste de unidades de espesor si es necesario
   ' Si es Imperial, convertimos Diámetro a pulgadas para que coincida con
   ' E (psi) y espesor (in)
   If Not IsMetric Then
-    dValue = Diameter * 12
+    diameterForCalculation = Diameter * 12
   End If
   
   Dim expansionFactor As Double
-  expansionFactor = (Pressure * dValue) / (2 * E * tValue)
+  expansionFactor = (Pressure * diameterForCalculation) / (2 * youngsModulus * thicknessForCalculation)
   
   CBHP = 1 + expansionFactor
 
