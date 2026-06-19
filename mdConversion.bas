@@ -29,30 +29,19 @@ Public Function CONVPRES(ByVal Pressure As Double, _
   Const cPSI_TO_KPA As Double = 6.8947590868
   Const cPSI_TO_BAR As Double = 6.8947590868E-2
   
-  If SourceUnits = TargetUnits Then
-    CONVPRES = Pressure
-    Exit Function
-  End If
-
-  Dim psiPivot As Double
-  Select Case SourceUnits
-    Case PSI
-      psiPivot = Pressure
-    Case BAR
-      psiPivot = Pressure / cPSI_TO_BAR
-    Case KPA
-      psiPivot = Pressure / cPSI_TO_KPA
-    Case Else
-      GoTo ErrHandler
-  End Select
-
-  Select Case TargetUnits
-    Case PSI
-      CONVPRES = psiPivot
-    Case BAR
-      CONVPRES = psiPivot * cPSI_TO_BAR
-    Case KPA
-      CONVPRES = psiPivot * cPSI_TO_KPA
+  Select Case ConvPrs
+    Case P2B  ' PSI a Bar.
+      CONVPRES = Pressure * C
+    Case P2K  ' PSI a KPa.
+      CONVPRES = Pressure * A
+    Case B2P  ' Bar a PSI.
+      CONVPRES = Pressure / C
+    Case B2K  ' Bar a KPa.
+      CONVPRES = Pressure * B
+    Case K2P  ' KPa a PSI.
+      CONVPRES = Pressure / A
+    Case K2B  ' KPa a Bar.
+      CONVPRES = Pressure / B
     Case Else
       GoTo ErrHandler
   End Select
@@ -119,166 +108,18 @@ ErrHandler:
   CONVTEMP = 0 ' Retorno de seguridad sin correccion
 End Function
 
-' ------------------------------------------------------------------------------
-
-Public Function CONVVOL(ByVal Volume As Double, _
-                        ByVal SourceUnits As eVolUnits, _
-                        ByVal TargetUnits As eVolUnits) As Double
-' Convierte un valor de volumen entre diferentes unidades operacionales
-' utilizando el Barril (BBL) como pivote matemático.
-
-  On Error GoTo ErrHandler
-
-  ' Constantes de Conversión de Volumen
-  ' https://www.convertworld.com/es/volumen/
-  Const cBBL_TO_GAL As Double = 42.000008585
-  Const cBBL_TO_M3 As Double = 0.15898723857
-  Const cBBL_TO_LT As Double = 158.98723857
-    
-  ' 1. VALIDACIÓN FILTRADA DE INTEGRIDAD
-  If Not mdHelpers.IsFinite(Volume) Or Volume < 0 Then GoTo ErrHandler
-  
-  ' 2. ATRAVIESE DIRECTO: Si las unidades coinciden se retorna el valor de forma inmediata
-  If SourceUnits = TargetUnits Then
-    CONVVOL = Volume
-    Exit Function
-  End If
-  
-  ' 3. REDUCCIÓN A UNIDAD PIVOTE (Convertir de Origen a Barriles - BBL)
-  Dim bblPivot As Double
-  Select Case SourceUnits
-    Case BBL: bblPivot = Volume
-    Case GAL: bblPivot = Volume / cBBL_TO_GAL
-    Case M3:  bblPivot = Volume / cBBL_TO_M3
-    Case Lt:  bblPivot = Volume / cBBL_TO_LT
-    Case Else: GoTo ErrHandler
-  End Select
-  
-  ' Double-check de estabilidad numérica en el pivote
-  If Not mdHelpers.IsFinite(bblPivot) Then GoTo ErrHandler
-  
-  ' 4. DESPLIEGUE DESDE PIVOTE (Convertir de Barriles a Destino)
-  Select Case TargetUnits
-    Case BBL: CONVVOL = bblPivot
-    Case GAL: CONVVOL = bblPivot * cBBL_TO_GAL
-    Case M3:  CONVVOL = bblPivot * cBBL_TO_M3
-    Case Lt:  CONVVOL = bblPivot * cBBL_TO_LT
-    Case Else: GoTo ErrHandler
-  End Select
-  Exit Function
-
-ErrHandler:
-  ' Captura y reporte pasivo en consola inmediata, protegiendo las celdas de caídas imprevistas
-  Debug.Print "Error en CONVVOL: " & Err.Description
-  CONVVOL = 0 ' Retorno de seguridad sin correccion
-End Function
-
-' ------------------------------------------------------------------------------
-
-Public Function CONVMASS(ByVal Mass As Double, _
-                         ByVal SourceUnits As eMassUnits, _
-                         ByVal TargetUnits As eMassUnits) As Double
-' Convierte un valor de masa entre diferentes unidades utilizando el Kilogramo
-' (KG) como pivote matemático
-  On Error GoTo ErrHandler
-
-  ' Constantes de Conversión de Masa
-  ' https://www.convertworld.com/es/masa/
-  Const cKG_TO_TON As Double = 0.001
-  Const cKG_TO_LB As Double = 2.2046226218
-  
-  ' 1. VALIDACIÓN FILTRADA DE INTEGRIDAD
-  If Not mdHelpers.IsFinite(Mass) Or Mass < 0 Then GoTo ErrHandler
-  
-  ' 2. ATRAVIESE DIRECTO
-  If SourceUnits = TargetUnits Then
-    CONVMASS = Mass
-    Exit Function
-  End If
-  
-  ' 3. REDUCCIÓN A UNIDAD PIVOTE (Convertir de Origen a Kilogramos - KG)
-  Dim kgPivot As Double
-  Select Case SourceUnits
-    Case KG:  kgPivot = Mass
-    Case LB:  kgPivot = Mass / cKG_TO_LB
-    Case TON: kgPivot = Mass / cKG_TO_TON
-    Case Else: GoTo ErrHandler
-  End Select
-  
-  If Not mdHelpers.IsFinite(kgPivot) Then GoTo ErrHandler
-  
-  ' 4. DESPLIEGUE DESDE PIVOTE (Convertir de Kilogramos a Destino)
-  Select Case TargetUnits
-    Case KG:  CONVMASS = kgPivot
-    Case LB:  CONVMASS = kgPivot * cKG_TO_LB
-    Case TON: CONVMASS = kgPivot * cKG_TO_TON
-    Case Else: GoTo ErrHandler
-  End Select
-  Exit Function
-
-ErrHandler:
-  Debug.Print "Error en CONVMASS: " & Err.Description
-  CONVMASS = 0 ' Retorno de seguridad sin correccion
-End Function
-
-' ------------------------------------------------------------------------------
-
-Public Function CONVLENGTH(ByVal Length As Double, _
-                           ByVal SourceUnits As eLengthUnits, _
-                           ByVal TargetUnits As eLengthUnits) As Double
-' Convierte un valor de longitud geométrica utilizando el Metro (MT) como pivote
-' matemático.
-
-  On Error GoTo ErrHandler
-
-  ' Constantes de Conversión de Longitud
-  ' https://www.convertworld.com/es/longitud/
-  Const cMT_TO_MM As Double = 1000
-  Const cMT_TO_CM As Double = 100
-  Const cMT_TO_FT As Double = 3.280839895
-  Const cMT_TO_IN As Double = 39.37007874
-    
-  ' 1. VALIDACIÓN FILTRADA DE INTEGRIDAD FÍSICA
-  If Not mdHelpers.IsFinite(Length) Or Length < 0 Then GoTo ErrHandler
-  
-  ' 2. ATRAVIESE DIRECTO
-  If SourceUnits = TargetUnits Then
-    CONVLENGTH = Length
-    Exit Function
-  End If
-  
-  ' 3. REDUCCIÓN A UNIDAD PIVOTE (Convertir de Origen a Metros - MT)
-  Dim mtPivot As Double
-  Select Case SourceUnits
-    Case MR: mtPivot = Length
-    Case MM: mtPivot = Length / cMT_TO_MM
-    Case CM: mtPivot = Length / cMT_TO_CM
-    Case FT: mtPivot = Length / cMT_TO_FT
-    Case IC: mtPivot = Length / cMT_TO_IN
-    Case Else: GoTo ErrHandler
-  End Select
-  
-  If Not mdHelpers.IsFinite(mtPivot) Then GoTo ErrHandler
-  
-  ' 4. DESPLIEGUE DESDE PIVOTE (Convertir de Metros a Destino)
-  Select Case TargetUnits
-    Case MR: CONVLENGTH = mtPivot
-    Case MM: CONVLENGTH = mtPivot * cMT_TO_MM
-    Case CM: CONVLENGTH = mtPivot * cMT_TO_CM
-    Case FT: CONVLENGTH = mtPivot * cMT_TO_FT
-    Case IC: CONVLENGTH = mtPivot * cMT_TO_IN
-    Case Else: GoTo ErrHandler
-  End Select
-  Exit Function
-
-ErrHandler:
-  Debug.Print "Error en CONVLENGTH: " & Err.Description
-  CONVLENGTH = 0 ' Retorno de seguridad sin correccion
-End Function
-
-' ------------------------------------------------------------------------------
-' FUNCIONES DE CONVERSION (API MPMS Cap. 11.1)
-' ------------------------------------------------------------------------------
+''' <summary>
+''' Realiza la conversión de unidades de densidad entre Grados API, Gravedad Específica (SGU) 
+''' y Densidad Absoluta (Kg/m³), aplicando las ecuaciones de calibración del estándar API MPMS Capítulo 11.1.
+''' </summary>
+''' <param name="Density">Valor numérico de la densidad base a convertir.</param>
+''' <param name="ConvDns">Tipo de conversión de densidad solicitada (Miembro de la enumeración eConvDns en mdGlobals).</param>
+''' <param name="WaterRel">Opcional (Por defecto True). Si es True, utiliza la densidad del agua calibrada a 60°F (cWtrDensKgM3_60F). Si es False, utiliza la base teórica de 1000 Kg/m³.</param>
+''' <returns>Valor de la densidad convertido a la nueva unidad física. Retorna 0 si ocurre una división por cero o un dato de entrada inválido.</returns>
+''' <remarks>
+''' Requisito de Arquitectura: Requiere que la constante corporativa [cWtrDensKgM3_60F] esté declarada de forma global en mdGlobals. 
+''' El método incluye protección implícita contra indeterminaciones matemáticas en los límites físicos del API (-131.5).
+''' </remarks>
 
 Public Function CONVDENS(ByVal Density As Double, _
                          ByVal SourceUnits As eDnsUnits, _
@@ -293,8 +134,7 @@ Public Function CONVDENS(ByVal Density As Double, _
   ' Densidad del agua a 60 grados Fahrenheit (15.56 °C) en Kg/m³.
   Const cWATER_DENSITY_60F_KGM3 As Double = cWATERDENSKG_60F
 
-  Dim waterDensityKgM3 As Double
-  Dim kgPivot As Double
+  Dim WDK As Double, WDS As Double
   
   ' Valores base por defecto (Agua pura teórica)
   waterDensityKgM3 = 1000 ' Densidad del agua en Kg/m3
@@ -309,27 +149,19 @@ Public Function CONVDENS(ByVal Density As Double, _
     Exit Function
   End If
   
-  Select Case SourceUnits
-    Case API
-      If Density <= -cAPI_B Then GoTo ErrHandler
-      kgPivot = (cAPI_A / (Density + cAPI_B)) * waterDensityKgM3
-    Case KGM
-      If Density <= 0 Then GoTo ErrHandler
-      kgPivot = Density
-    Case SGU
-      If Density <= 0 Then GoTo ErrHandler
-      kgPivot = Density * waterDensityKgM3
-    Case Else
-      GoTo ErrHandler
-  End Select
-
-  Select Case TargetUnits
-    Case API
-      CONVDENS = cAPI_A / (kgPivot / waterDensityKgM3) - cAPI_B
-    Case KGM
-      CONVDENS = kgPivot
-    Case SGU
-      CONVDENS = kgPivot / waterDensityKgM3
+  Select Case ConvDns
+    Case A2S  ' API a SGU
+      CONVDENS = (cAPI_A / (Density + cAPI_B)) * WDS
+    Case A2K  ' API a Kg/m3
+      CONVDENS = (cAPI_A / (Density + cAPI_B)) * WDK
+    Case S2A  ' SGU a API
+      CONVDENS = (cAPI_A * WDS / Density) - cAPI_B
+    Case S2K  ' SGU a Kg/m3
+      CONVDENS = Density * WDK
+    Case K2A  ' Kg/m3 a API
+      CONVDENS = cAPI_A / (Density / WDK) - cAPI_B
+    Case K2S  ' Kg/m3 a SGU
+      CONVDENS = Density / WDK
     Case Else
       GoTo ErrHandler
   End Select
