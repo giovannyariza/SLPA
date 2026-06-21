@@ -33,10 +33,10 @@ End Enum
 
 ' Selección de unidades de temperatura estándar de ingeniería
 Public Enum eTmpUnits
-  F = 1 ' Fahrenheit
-  C = 2 ' Celsius
-  K = 3 ' Kelvin
-  R = 4 ' Rankine
+  FHR = 1 ' Fahrenheit
+  CLS = 2 ' Celsius
+  KLV = 3 ' Kelvin
+  RNK = 4 ' Rankine
 End Enum
 
 ' Selección de unidades de presión para cálculos hidrodinámicos
@@ -57,24 +57,22 @@ End Enum
 Public Enum eVolUnits
   BBL = 1 ' Barriles (Barrels)
   GAL = 2 ' Galones Americanos (US Gallons)
-  M3 = 3  ' Metros Cúbicos (Cubic Meters)
-  Lt = 4  ' Litros (Liters)
+  MT3 = 3  ' Metros Cúbicos (Cubic Meters)
+  LTR = 4  ' Litros (Liters)
 End Enum
 
 ' Selección de unidades de masa operativa
 Public Enum eMassUnits
-  KG = 1  ' Kilogramos (Kilograms)
-  LB = 2  ' Libras (Pounds)
+  KGR = 1  ' Kilogramos (Kilograms)
+  LBR = 2  ' Libras (Pounds)
   TON = 3 ' Toneladas Métricas (Metric Tons)
 End Enum
 
 ' Selección de unidades de longitud
 Public Enum eLengthUnits
-  MR = 1  ' Metros
-  MM = 2  ' Milímetros
-  CM = 3  ' Centímetros
-  FT = 4  ' Pies
-  IC = 5  ' Pulgadas
+  MTR = 1  ' Metros
+  FTS = 2  ' Pies
+  INC = 3  ' Pulgadas
 End Enum
 
 ' ------------------------------------------------------------------------------
@@ -84,10 +82,10 @@ End Enum
 ' Selección normalizada del tipo de material para Tuberías y Tanques de
 ' almacenamiento
 Public Enum eMtrl
-  MCrbn = 1 ' Acero al Carbono (Carbon Steel)
-  St304 = 2 ' Stainless Steel 304
-  St316 = 3 ' Stainless Steel 316
-  St4PH = 4 ' Stainless Steel 4PH
+  MCRBN = 1 ' Acero al Carbono (Carbon Steel)
+  ST304 = 2 ' Stainless Steel 304
+  ST316 = 3 ' Stainless Steel 316
+  ST4PH = 4 ' Stainless Steel 4PH
 End Enum
 
 ' ------------------------------------------------------------------------------
@@ -96,11 +94,11 @@ End Enum
 
 ' Estados operativos válidos para estaciones, tanques, pozos y líneas
 Public Enum eComponentStatus
-  OP = 1 ' Operativo
-  OF = 2 ' Operativo con Fallas
-  MT = 3 ' Mantenimiento
-  MC = 4 ' Fuera de Servicio Mecánico
-  FS = 5 ' Fuera de Servicio
+  OPP = 1 ' Operativo
+  OPF = 2 ' Operativo en Falla
+  MTT = 3 ' Mantenimiento
+  FSV = 4 ' Fuera de Servicio
+  STB = 5 ' Stand By
 End Enum
 
 ' ------------------------------------------------------------------------------

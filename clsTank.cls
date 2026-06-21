@@ -550,7 +550,7 @@ End Function
 ''' </summary>
 Public Function CalculateCTSH(ByVal tempLiqF As Double, ByVal tempAmbF As Double) As Double
   On Error GoTo ErrHandler
-  CalculateCTSH = mdAPICalcs.ctsh(tempLiqF, tempAmbF, Me.Material, TmpUnits:=F, TmpBase:=cTEMPBASE_F)
+  CalculateCTSH = mdAPICalcs.CTSH(tempLiqF, tempAmbF, Me.Material, TmpUnits:=F, TmpBase:=cTEMPBASE_F)
   Exit Function
 ErrHandler:
   Debug.Print "Error en CalculateCTSH [" & Me.Tag & "]: " & Err.Description
