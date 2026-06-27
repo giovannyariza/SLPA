@@ -60,8 +60,8 @@ End Function
 ' ------------------------------------------------------------------------------
 
 Public Function CONVTEMP(ByVal Temperature As Double, _
-                         ByVal SourceUnits As eTmpUnits, _
-                         ByVal TargetUnits As eTmpUnits) As Double
+                         ByVal SourceUnits As eTempUnits, _
+                         ByVal TargetUnits As eTempUnits) As Double
 ' Realiza la conversión de unidades de temperatura (Celsius, Fahrenheit, Kelvin,
 ' Rankine) bajo factores de conversión y usando Celsius como pivote matemático.
   
@@ -285,7 +285,7 @@ End Function
 ' ------------------------------------------------------------------------------
 
 Public Function CONVTEMP68(ByVal Temperature As Double, _
-                           Optional ByVal TempUnits As eTmpUnits = FHR)
+                           Optional ByVal TempUnits As eTempUnits = FHR)
 ' Convierte un valor de temperatura desde la escala moderna ITS-90
 ' (International Temperature Scale of 1990) hacia la escala previa IPTS-68
 ' (International Practical Temperature Scale of 1968)

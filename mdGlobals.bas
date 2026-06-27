@@ -32,7 +32,7 @@ Public Enum eTypeLiq
 End Enum
 
 ' Selección de unidades de temperatura estándar de ingeniería
-Public Enum eTmpUnits
+Public Enum eTempUnits
   FHR = 1 ' Fahrenheit
   CLS = 2 ' Celsius
   KLV = 3 ' Kelvin

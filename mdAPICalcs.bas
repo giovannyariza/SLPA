@@ -24,7 +24,7 @@ Option Explicit
 ' ------------------------------------------------------------------------------
 
 Public Function HYC(ByVal TempObs As Double, _
-                    Optional TempUnits As eTmpUnits = FHR) As Double
+                    Optional TempUnits As eTempUnits = FHR) As Double
 ' Calcula el Factor de Corrección por Temperatura del Hidrómetro (HYC).
 ' Basado en API MPMS Capítulo 9.3 (Corrección por expansión del vidrio).
   
@@ -69,7 +69,7 @@ End Function
 Public Function DENSHYC(ByVal DensObs As Double, _
                         ByVal TempObs As Double, _
                         Optional DensUnits As eDnsUnits = API, _
-                        Optional TempUnits As eTmpUnits = FHR) As Double
+                        Optional TempUnits As eTempUnits = FHR) As Double
 ' Calcula la densidad o API corregido por hidrómetro.
 ' Convierte la lectura física a densidad absoluta para aplicar el factor HYC
   
@@ -132,14 +132,14 @@ Public Function ALPHA60MED(ByVal DensRange As Variant, _
   Dim arrDens() As Double
   arrDens = mdHelpers.ConvertToDoubleArray(DensRange)
   
-  Dim arrTmps() As Double
-  arrTmps = mdHelpers.ConvertToDoubleArray(TempRange)
+  Dim arrTemps() As Double
+  arrTemps = mdHelpers.ConvertToDoubleArray(TempRange)
   
   ' Validar que ambos arreglos tengan la misma dimensión y mínimo 10 datos
   Dim sampleCount As Long
   sampleCount = UBound(arrDens)
 
-  If sampleCount <> UBound(arrTmps) Or sampleCount < 10 Then
+  If sampleCount <> UBound(arrTemps) Or sampleCount < 10 Then
     ' Retorna #NUM! en Excel si los datos son insuficientes
     ALPHA60MED = CVErr(xlErrNum)
     Exit Function
@@ -155,9 +155,9 @@ Public Function ALPHA60MED(ByVal DensRange As Variant, _
   validCounts = 0
   
   For arrayIndex = 1 To sampleCount
-    If mdHelpers.IsFinite(arrDens(arrayIndex)) And mdHelpers.IsFinite(arrTmps(arrayIndex)) Then      
+    If mdHelpers.IsFinite(arrDens(arrayIndex)) And mdHelpers.IsFinite(arrTemps(arrayIndex)) Then      
       ' Hallar API 60 base para este punto (Newton-Raphson)
-      api60_Iter = API60F(arrDens(arrayIndex), arrTmps(arrayIndex), TypeLiq, 0, 0)
+      api60_Iter = API60F(arrDens(arrayIndex), arrTemps(arrayIndex), TypeLiq, 0, 0)
       
       If api60_Iter > 0 Then
         ' Hallar Alfa 60 para este API 60
@@ -276,7 +276,7 @@ Public Function FP(ByVal API60 As Double, _
 
   ' Temperatura observada convertida a IPTS-68 Celsius
   Dim TempC68 As Double
-  TempC68 = mdConversion.CONVTEMP68(TempF, C)
+  TempC68 = mdConversion.CONVTEMP68(TempF, CLS)
 
   ' Densidad a 60F ajustada a IPTS-68 en Kg/m³
   Dim Rho68 As Double
@@ -328,7 +328,7 @@ Public Function CTL(ByVal API60 As Double, _
 
   ' Convertir temperatura observada de ITS-90 F a IPTS-68 F
   Dim TempF68 As Double
-  TempF68 = mdConversion.CONVTEMP68(TempF, F)
+  TempF68 = mdConversion.CONVTEMP68(TempF, FHR)
 
   ' Calcular la diferencia de temperatura con la temperatura base 60F
   Dim DeltaT As Double
@@ -428,10 +428,10 @@ Public Function API60F(ByVal APIOBS As Double, _
   
   ' Convertir temperatura observada de ITS-90 F a IPTS-68 F y C
   Dim TempObs_F68 As Double
-  TempObs_F68 = mdConversion.CONVTEMP68(TempObs, F)
+  TempObs_F68 = mdConversion.CONVTEMP68(TempObs, FHR)
   
   Dim TempObs_C68 As Double
-  TempObs_C68 = mdConversion.CONVTEMP(TempObs_F68, F, C)
+  TempObs_C68 = mdConversion.CONVTEMP(TempObs_F68, FHR, CLS)
   
   ' Calcular Delta_t en Fahrenheit IPTS-68
   Dim DeltaT_F68 As Double
@@ -709,40 +709,40 @@ End Function
 ' Correcciones geométricas y físicas de la infraestructura de almacenamiento.
 ' ------------------------------------------------------------------------------
 
-Public Function TSH(ByVal TmpLiq As Double, _
-                    ByVal TmpAmb As Double) As Double
+Public Function TSH(ByVal TempLiq As Double, _
+                    ByVal TempAmb As Double) As Double
 ' Calcula la temperatura de la pared (coraza) del tanque.
 ' API MPMS 12.1.1, Sección 5.1.
   
   On Error GoTo ErrHandler
 
-  If Not mdHelpers.IsFinite(TmpLiq) Or _
-     Not mdHelpers.IsFinite(TmpAmb) Then GoTo ErrHandler
+  If Not mdHelpers.IsFinite(TempLiq) Or _
+     Not mdHelpers.IsFinite(TempAmb) Then GoTo ErrHandler
   
   ' Fórmula: ((7 * T_liq) + T_amb) / 8
-  TSH = (7 * TmpLiq + TmpAmb) / 8
+  TSH = (7 * TempLiq + TempAmb) / 8
 
   If Not mdHelpers.IsFinite(TSH) Then GoTo ErrHandler
   Exit Function
 
 ErrHandler:
   Debug.Print "Error en TSH: " & Err.Description
-  TSH = TmpLiq ' Retorno de seguridad sin correccion
+  TSH = TempLiq ' Retorno de seguridad sin correccion
 End Function
 
 ' ------------------------------------------------------------------------------
 
-Public Function CTSH(ByVal TmpLiq As Double, _
-                     ByVal TmpAmb As Double, _
+Public Function CTSH(ByVal TempLiq As Double, _
+                     ByVal TempAmb As Double, _
                      Optional ByVal Mtrl As eMtrl = MCrbn, _
-                     Optional ByVal TempUnits As eTmpUnits = F, _
-                     Optional ByVal TmpBase As Double = cTEMPBASE_F) As Double
+                     Optional ByVal TempUnits As eTempUnits = FHR, _
+                     Optional ByVal TempBase As Double = cTEMPBASE_F) As Double
 ' Calcula el Factor de Corrección por Temperatura de la Coraza (CTSH).
   
   On Error GoTo ErrHandler
 
-  If Not mdHelpers.IsFinite(TmpLiq) Or _
-     Not mdHelpers.IsFinite(TmpAmb) Then GoTo ErrHandler
+  If Not mdHelpers.IsFinite(TempLiq) Or _
+     Not mdHelpers.IsFinite(TempAmb) Then GoTo ErrHandler
   
   ' Obtener Coeficiente de Expansión Lineal (Tcfl)
   Dim Tcfl As Double
@@ -751,16 +751,16 @@ Public Function CTSH(ByVal TmpLiq As Double, _
 
   ' Calcular Temperatura de Coraza
   Dim Tshl As Double
-  Tshl = TSH(TmpLiq, TmpAmb)
+  Tshl = TSH(TempLiq, TempAmb)
 
-  ' Calcular DeltaTmp
-  Dim DeltaTmp As Double
-  DeltaTmp = Tshl - TmpBase
+  ' Calcular DeltaTemp
+  Dim DeltaTemp As Double
+  DeltaTemp = Tshl - TempBase
   
   ' Cálculo del CTSH (Expansión de área del cilindro)
-  ' La norma utiliza el binomio al cuadrado: (1 + Tcfl * DeltaTmp)^2
+  ' La norma utiliza el binomio al cuadrado: (1 + Tcfl * DeltaTemp)^2
   ' lo que expandido es: 1 + 2 * Tcfl * dT + Tcfl^2 * dT^2
-  CTSH = (1 + (Tcfl * DeltaTmp)) ^ 2
+  CTSH = (1 + (Tcfl * DeltaTemp)) ^ 2
 
   If Not mdHelpers.IsFinite(CTSH) Then CTSH = 1
   Exit Function
@@ -806,22 +806,22 @@ End Function
 
 Private Function GetLinearExpansionCoefficient( _
                                           ByVal Mtrl As eMtrl, _
-                                          ByVal TempUnits As eTmpUnits) As Double
+                                          ByVal TempUnits As eTempUnits) As Double
 ' Retorna el coeficiente de expansión lineal (alpha) según API 12.1.1.
 
   Select Case Mtrl
     Case MCrbn ' Acero al Carbono
       GetLinearExpansionCoefficient = _
-                                IIf(TempUnits = F, cCTSH_MCRBN_F, cCTSH_MCRBN_C)
+                                IIf(TempUnits = FHR, cCTSH_MCRBN_F, cCTSH_MCRBN_C)
     Case St304 ' Acero Inoxidable 304
       GetLinearExpansionCoefficient = _
-                                IIf(TempUnits = F, cCTSH_ST304_F, cCTSH_ST304_C)
+                                IIf(TempUnits = FHR, cCTSH_ST304_F, cCTSH_ST304_C)
     Case St316 ' Acero Inoxidable 316
       GetLinearExpansionCoefficient = _
-                                IIf(TempUnits = F, cCTSH_ST316_F, cCTSH_ST316_C)
+                                IIf(TempUnits = FHR, cCTSH_ST316_F, cCTSH_ST316_C)
     Case St4PH ' Acero Inoxidable 17-4 PH
       GetLinearExpansionCoefficient = _
-                                IIf(TempUnits = F, cCTSH_ST4PH_F, cCTSH_ST4PH_C)
+                                IIf(TempUnits = FHR, cCTSH_ST4PH_F, cCTSH_ST4PH_C)
     Case Else
       GetLinearExpansionCoefficient = 0
   End Select
