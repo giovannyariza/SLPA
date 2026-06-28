@@ -134,7 +134,7 @@ Public Function CONVDENS(ByVal Density As Double, _
     Case API
       ' Evitar división por cero
       If (Density + cAPI_B) = 0 Then GoTo ErrHandler
-      kgm3Pivot = (cAPI_A / (Density + cAPI_B)) * waterDensityKgM3
+      kgm3Pivot = (cAPI_A * waterDensityKgM3) / (Density + cAPI_B)
     Case Else: GoTo ErrHandler
   End Select
 
@@ -272,7 +272,7 @@ Public Function CONVLENGTH(ByVal Length As Double, _
   Select Case TargetUnits
     Case MTR: CONVLENGTH = mtrPivot
     Case FTS: CONVLENGTH = mtrPivot * MTR_TO_FTS
-    Case INC: CONVLENGTH = mtrPivot * INC
+    Case INC: CONVLENGTH = mtrPivot * MTR_TO_INC
     Case Else: GoTo ErrHandler
   End Select
   Exit Function
@@ -347,7 +347,7 @@ Private Function GetDeltaIPTS68(ByVal Temp90C As Double) As Double
   
   Dim counter As Integer
   For counter = 1 To 8
-    delta = delta + coeffs(counter) * (tau ^ counter)
+    delta = delta - coeffs(counter) * (tau ^ counter)
   Next counter
 
   GetDeltaIPTS68 = delta
@@ -366,46 +366,42 @@ Public Function CONVDENS68(ByVal Density60 As Double, _
 
   On Error GoTo ErrHandler
 
-  ' Conversion de la Gravedad API60 a Densidad en Kg/m³ (Pivote para cálculos 
-  ' API) Relativa a la Densidad del Agua a 60 F.
-  Dim rho60 As Double
+  ' Conversion de la densidad de entrada a Gravedad API60 (Pivote para cálculos)
+  Dim API60 As Double
   If DnsUnits = KGM Then
-    rho60 = Density60
+    API60 = Density60
   Else
-    rho60 = CONVDENS(Density60, DnsUnits, KGM, True)
+    API60 = mdConversion.CONVDENS(Density60, DnsUnits, API, True)
   End If
   
-  If rho60 <= 0 Then GoTo ErrHandler
+  Dim rho60 as Double
+  rho60 = mdConversion.CONVDENS(API60, API, KGM, True)
+
+  If API60 <= 0 Then GoTo ErrHandler
+  
+  Dim rho68 As Double
+  Dim alfa60_Calc As Double
+  Dim rho68_Calc as Double
+  Dim deltaRho As Double
 
   ' Obtención del Coeficiente de Expansión Térmica (Alpha60)
   If Alfa60 = 0 Then
-    ' Selección de Constantes K (API MPMS 11.1 Tablas 6A, 6B, 6D)
-    Dim K0 As Double, K1 As Double, K2 As Double
-    Call GetKConstants(TypeLiq, rho60, K0, K1, K2)
-    If K0 = 0 And K1 = 0 And K2 = 0 Then GoTo ErrHandler
-
-    ' Ejecucion de ecuaciones polinomiales de ajuste de escala
-    Dim coeffA As Double, coeffB As Double
-    coeffA = (cTEMPSHIFT / 2) * (((K0 / rho60) + K1) * (1 / rho60) + K2)
-    coeffB = ((2 * K0) + (K1 * rho60)) / (K0 + (K1 + (K2 * rho60) * rho60))
-    
-    Dim deltaRho As Double
-    deltaRho = (1 + ((Exp(coeffA * (1 + 0.8 * coeffA)) - 1) / _
-               (1 + coeffA * (1 + 1.6 * coeffA) * coeffB)))
+    ' Calcular Alfa60 con la misma lógica usada en mdAPICalcs.bas
+    alfa60_Calc = mdAPICalcs.ALPHA60(API60, TypeLiq, rho68_Calc)
+    If alfa60_Calc = 0 Or rho68_Calc <= 0 Then GoTo ErrHandler
+    rho68 = rho68_Calc
   Else
     ' Ajuste simplificado directo si el usuario inyecta de forma explícita el
     ' coeficiente Alfa60
     deltaRho = Exp(0.5 * Alfa60 * cTEMPSHIFT * (1 + 0.4 * Alfa60 * cTEMPSHIFT))
+    ' Aplicación y Desnormalización a la unidad de entrada
+    rho68 = rho60 * deltaRho
   End If
-
-  ' Aplicación y Desnormalización a la unidad de entrada
-  Dim rho68 As Double
-  rho68 = rho60 * deltaRho
 
   If DnsUnits = KGM Then
     CONVDENS68 = rho68
   Else
-    CONVDENS68 = CONVDENS(rho68, KGM, DnsUnits, True)
+    CONVDENS68 = mdConversion.CONVDENS(rho68, KGM, DnsUnits, True)
   End If
   Exit Function
 

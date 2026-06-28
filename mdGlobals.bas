@@ -65,7 +65,7 @@ End Enum
 Public Enum eMassUnits
   KGR = 1  ' Kilogramos (Kilograms)
   LBR = 2  ' Libras (Pounds)
-  TON = 3 ' Toneladas Métricas (Metric Tons)
+  TON = 3  ' Toneladas Métricas (Metric Tons)
 End Enum
 
 ' Selección de unidades de longitud
